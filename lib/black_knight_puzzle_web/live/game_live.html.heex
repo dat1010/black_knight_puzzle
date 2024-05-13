@@ -1,0 +1,62 @@
+<div>
+  <style>
+    .chessboard td {
+      width: 50px;
+      height: 50px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .black {
+      background-color: #000000;
+      color: #ffffff;
+    }
+    .white {
+      background-color: #ffffff;
+      color: #000000;
+    }
+    .grey {
+      background-color: #A9A9A9;
+      color: #888888;
+    }
+  </style>
+
+  <table class="chessboard" style="border:1px solid black;">
+    <!-- Column headers -->
+    <tr>
+      <th></th>
+      <%= for col <- ['H', 'G', 'F', 'E', 'D', 'C'] do %>
+        <th><%= col %></th>
+      <% end %>
+    </tr>
+    <!-- Rows with data and row labels -->
+    <%= for {row_index, row} <- @game_map do %>
+      <tr>
+        <th><%= row_index %></th>
+        <%= for {col_index, value} <- Enum.reverse(Map.to_list(row)) do %>
+          <td
+            class={chess_color(row_index, col_index, value)}
+            phx-click="select_position"
+            phx-value-row={row_index}
+            phx-value-col={col_index}
+            phx-value-val={value}
+          >
+            <%= if value != 0, do: image_tag(value) %>
+          </td>
+        <% end %>
+      </tr>
+    <% end %>
+  </table>
+
+  <%= if @move do %>
+    <p>Move: <%= @move %></p>
+  <% end %>
+
+  <%= if @error do %>
+    <p><%= @error %></p>
+  <% end %>
+
+  <form phx-submit="submit_move">
+    <input type="text" name="move" placeholder="Enter move (e.g., Rc2c3)" />
+    <button type="submit">Submit</button>
+  </form>
+</div>

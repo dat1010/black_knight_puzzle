@@ -36,19 +36,30 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   Moves will be denoted using classical chess algebaric notation. Rc3 (rook moves to C 3) But since we have multiple of the same Piece
   we will need to use the fully qualified algebraic notation.  Rc2c3 (Rook at C 2 moves to C 3). In this puzzle there are no captures. So we can ignore that notation.
   """
-  def game_state() do
-    # Is move legal?
-    # Is game complete?
-    # Is winner?
-    # move count
-    # print out state
+  def check_game_state(game_state, move) do
+    cond do
+      !is_move_legal?(game_state, move) ->
+        %{error: "Illegal move", game_state: game_state}
+
+      !is_game_finished?(game_state, move) ->
+        updated_game_state = update_position(game_state, move)
+
+        if is_game_finished?(updated_game_state) do
+          %{ok: "finished", game_state: updated_game_state}
+        else
+          %{ok: "not finished", game_state: updated_game_state}
+        end
+
+      true ->
+        %{error: ""}
+    end
   end
 
   def set_board() do
     %{
       1 => %{H: "P", G: "B", F: "B", E: "B", D: "B", C: "R"},
       2 => %{H: "K", G: "K", F: "K", E: "K", D: "R", C: "R"},
-      3 => %{H: "x", G: "x", F: "x", E: "x", D: "B", C: 0}
+      3 => %{H: "x", G: "x", F: "x", E: "x", D: "R", C: 0}
     }
   end
 
