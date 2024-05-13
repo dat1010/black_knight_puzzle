@@ -10,7 +10,8 @@ defmodule BlackKnightPuzzle.Application do
     children = [
       BlackKnightPuzzleWeb.Telemetry,
       BlackKnightPuzzle.Repo,
-      {DNSCluster, query: Application.get_env(:black_knight_puzzle, :dns_cluster_query) || :ignore},
+      {DNSCluster,
+       query: Application.get_env(:black_knight_puzzle, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: BlackKnightPuzzle.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: BlackKnightPuzzle.Finch},

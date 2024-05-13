@@ -61,7 +61,13 @@ defmodule BlackKnightPuzzleWeb.GameLive do
         end
 
       _ ->
-        {:noreply, assign(socket, selected_start: {row, col, val}, selected_end: nil, move: nil)}
+        {:noreply,
+         assign(socket,
+           selected_start: nil,
+           selected_end: nil,
+           move: nil,
+           game_map: socket.assigns.game_map
+         )}
     end
   end
 

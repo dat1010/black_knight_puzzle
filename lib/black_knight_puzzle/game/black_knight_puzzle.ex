@@ -219,6 +219,12 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
       delta_x == 2 and delta_y == 1 ->
         true
 
+      delta_x == 1 and delta_y == 2 ->
+        true
+
+      delta_y == 2 and delta_x == 1 ->
+        true
+
       delta_y == 1 and delta_x == 2 ->
         true
 

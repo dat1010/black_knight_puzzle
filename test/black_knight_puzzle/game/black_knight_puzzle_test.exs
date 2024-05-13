@@ -67,14 +67,14 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "is_game_finished?/2 returns false" do
-    board_state = BlackKnight.game_state()
+    board_state = BlackKnight.set_board()
 
     result = BlackKnight.is_game_finished?(board_state)
     refute result
   end
 
   test "is_move_legal/2 rook returns true for horizontal" do
-    board_state = BlackKnight.game_state()
+    board_state = BlackKnight.set_board()
 
     legal? = BlackKnight.is_move_legal?(board_state, "Rc2C3")
 
@@ -82,7 +82,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "is_move_legal/2 rook returns true for vertical" do
-    board_state = BlackKnight.game_state()
+    board_state = BlackKnight.set_board()
 
     legal? = BlackKnight.is_move_legal?(board_state, "Rh2g2")
 
@@ -90,7 +90,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "is_move_legal/2 rook returns false for vertical" do
-    board_state = BlackKnight.game_state()
+    board_state = BlackKnight.set_board()
 
     legal? = BlackKnight.is_move_legal?(board_state, "Rh1g2")
 
@@ -98,7 +98,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "is_move_legal/2 bishop returns true" do
-    board_state = BlackKnight.game_state()
+    board_state = BlackKnight.set_board()
 
     legal? = BlackKnight.is_move_legal?(board_state, "Bh1g2")
 
@@ -106,7 +106,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "is_move_legal/2 bishop returns true for edge to edge" do
-    board_state = BlackKnight.game_state()
+    board_state = BlackKnight.set_board()
 
     legal? = BlackKnight.is_move_legal?(board_state, "Bh1d5")
 
@@ -114,7 +114,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "is_move_legal/2 bishop returns false for horizontal move" do
-    board_state = BlackKnight.game_state()
+    board_state = BlackKnight.set_board()
 
     legal? = BlackKnight.is_move_legal?(board_state, "Bh1h5")
 
@@ -122,7 +122,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "is_move_legal/2 kight returns false for move" do
-    board_state = BlackKnight.game_state()
+    board_state = BlackKnight.set_board()
 
     legal? = BlackKnight.is_move_legal?(board_state, "Kh1f5")
 
@@ -130,15 +130,23 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "is_move_legal/2 kight returns true for move" do
-    board_state = BlackKnight.game_state()
+    board_state = BlackKnight.set_board()
 
     legal? = BlackKnight.is_move_legal?(board_state, "Kh1f2")
 
     assert legal?
   end
 
+  test "is_move_legal/2 kight returns true for win spot non black knight" do
+    board_state = BlackKnight.set_board()
+
+    legal? = BlackKnight.is_move_legal?(board_state, "Kd1c3")
+
+    assert legal?
+  end
+
   test "is_move_legal/2 kight returns true for move middle" do
-    board_state = BlackKnight.game_state()
+    board_state = BlackKnight.set_board()
 
     legal? = BlackKnight.is_move_legal?(board_state, "Ke3g2")
 
