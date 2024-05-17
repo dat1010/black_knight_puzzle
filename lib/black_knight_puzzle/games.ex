@@ -31,6 +31,37 @@ defmodule BlackKnightPuzzle.Games do
     |> hd()
   end
 
+  @doc """
+  Gets a single user game by ID.
+
+  ## Examples
+
+      iex> get_user_game_by_id(123)
+      %UserGame{id: 123, ...}
+
+      iex> get_user_game_by_id(456)
+      nil
+
+  """
+  def get_user_game_by_id(user_game_id) do
+    Repo.get(UserGame, user_game_id)
+  end
+
+  @doc """
+  Gets all games for a specific user id
+
+  ## Examples
+
+    iex> list_user_games_by_user_id(1)
+    %UserGame{}
+
+    iex> list_user_games_by_user_id(341234)
+    []
+  """
+  def list_user_games_by_user_id(user_id) do
+    from(g in UserGame, where: g.user_id == ^user_id) |> Repo.all()
+  end
+
   # database inserts
 
   def create_user_game(attrs \\ %{}) do

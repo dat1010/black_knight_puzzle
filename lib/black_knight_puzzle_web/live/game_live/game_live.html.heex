@@ -20,6 +20,12 @@
     }
   </style>
 
+  <%= unless @current_user == nil do %>
+    <button phx-click="new_game">New Game</button>
+  <% end %>
+  <%= if @move do %>
+    <p>Move: <%= @move %></p>
+  <% end %>
   <table class="chessboard" style="border:1px solid black;">
     <!-- Column headers -->
     <tr>
@@ -46,14 +52,6 @@
       </tr>
     <% end %>
   </table>
-
-  <%= if @move do %>
-    <p>Move: <%= @move %></p>
-  <% end %>
-
-  <%= if @error do %>
-    <p><%= @error %></p>
-  <% end %>
 
   <form phx-submit="submit_move">
     <input type="text" name="move" placeholder="Enter move (e.g., Rc2c3)" />

@@ -1,1 +1,31 @@
+<div>
+  <h1>List of your games</h1>
 
+  <table>
+    <thead>
+      <tr>
+        <th>Id</th>
+        <th>Game Name</th>
+        <th>Inserted At</th>
+
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="uesr_games">
+      <%= for user_game <- @user_games do %>
+        <tr id={"game-#{user_game.id}"}>
+          <td><%= user_game.id %></td>
+          <td><%= user_game.game_id %></td>
+          <td><%= user_game.inserted_at %></td>
+
+          <td>
+            <span>
+              <%= live_redirect("Show", to: "/users/#{user_game.user_id}/games/#{user_game.id}") %>
+            </span>
+          </td>
+          <td></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
