@@ -4,12 +4,6 @@ defmodule BlackKnightPuzzleWeb.UserRegistrationLive do
   alias BlackKnightPuzzle.Accounts
   alias BlackKnightPuzzle.Accounts.User
 
-  # def render(assigns) do
-  #   ~H"""
-  #   
-  #   """
-  # end
-
   def mount(_params, _session, socket) do
     changeset = Accounts.change_user_registration(%User{})
 
