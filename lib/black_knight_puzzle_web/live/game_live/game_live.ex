@@ -22,33 +22,6 @@ defmodule BlackKnightPuzzleWeb.GameLive do
     BlackKnight.set_board()
   end
 
-  @impl true
-  def handle_event("submit_move", %{"move" => move}, socket) do
-    case process_move(move, socket.assigns.game_map) do
-      {:ok, new_game_map} ->
-        {:noreply,
-         socket
-         |> assign(game_map: new_game_map)}
-
-      {:error, reason} ->
-        {:noreply,
-         socket
-         |> assign(error: nil)
-         |> put_flash(:error, "Failed to submit move: #{reason}")}
-    end
-  end
-
-  # def handle_event("submit_move", %{"move" => move}, socket) do
-  #
-  #   case process_move(move, socket.assigns.game_map) do
-  #     {:ok, new_game_map} ->
-  #       {:noreply, assign(socket, game_map: new_game_map)}
-  #
-  #     {:error, reason} ->
-  #       {:noreply, assign(socket, error: reason)}
-  #   end
-  # end
-
   def handle_event("select_position", %{"row" => row, "col" => col, "val" => val}, socket) do
     case {socket.assigns.selected_start, socket.assigns.selected_end} do
       {nil, _} ->
