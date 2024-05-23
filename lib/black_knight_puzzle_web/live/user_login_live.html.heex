@@ -1,0 +1,54 @@
+<div class="container">
+  <div class="columns is-centered">
+    <div class="column is-half">
+      <div class="box">
+        <h3 class="title is-3 has-text-centered">Log in to account</h3>
+        <p class="subtitle has-text-centered">
+          Don't have an account?
+          <a href="/users/register" class="has-text-weight-semibold has-text-link">
+            Sign up
+          </a>
+          for an account now.
+        </p>
+
+        <.simple_form for={@form} id="login_form" action={~p"/users/log_in"} phx-update="ignore">
+          <div class="field">
+            <label class="label" for="email">Email</label>
+            <div class="control">
+              <input class="input" type="email" id="email" name="email" required />
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="password">Password</label>
+            <div class="control">
+              <input class="input" type="password" id="password" name="password" required />
+            </div>
+          </div>
+
+          <:actions>
+            <div class="field">
+              <label class="checkbox">
+                <input type="checkbox" name="remember_me" /> Keep me logged in
+              </label>
+            </div>
+
+            <div class="field">
+              <a href="/users/reset_password" class="is-size-7 has-text-weight-semibold">
+                Forgot your password?
+              </a>
+            </div>
+          </:actions>
+          <:actions>
+            <div class="field">
+              <div class="control">
+                <button type="submit" class="button is-link is-fullwidth">
+                  Log in →
+                </button>
+              </div>
+            </div>
+          </:actions>
+        </.simple_form>
+      </div>
+    </div>
+  </div>
+</div>

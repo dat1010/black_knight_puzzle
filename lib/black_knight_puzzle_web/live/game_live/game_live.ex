@@ -109,9 +109,7 @@ defmodule BlackKnightPuzzleWeb.GameLive do
     if value != "x" do
       src = "images/#{value}.png"
       html_content = "<img src=\"#{src}\" alt=\"#{value}\" style=\"width: 100%; height: auto;\">"
-      testing = Phoenix.HTML.raw(html_content)
-      dbg()
-      testing
+      Phoenix.HTML.raw(html_content)
     end
   end
 
