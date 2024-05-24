@@ -31,8 +31,22 @@ defmodule BlackKnightPuzzleWeb.GameLive do
         lower = String.downcase("#{start_col}#{start_row}#{col}#{row}")
         move = "#{start_val}#{lower}"
 
-        case process_move(move, socket.assigns.game_map) do
-          {:ok, new_game_map} ->
+        case BlackKnight.process_move(socket.assigns.game_map, move) do
+          {:ok, "Game finished", new_game_map} ->
+            socket =
+              socket
+              |> assign(
+                selected_start: nil,
+                selected_end: nil,
+                move: move,
+                game_map: new_game_map,
+                error: ""
+              )
+              |> put_flash(:info, "Congratulations! You've won the game!")
+
+            {:noreply, socket}
+
+          {:ok, _, new_game_map} ->
             {:noreply,
              assign(socket,
                selected_start: nil,
@@ -42,15 +56,19 @@ defmodule BlackKnightPuzzleWeb.GameLive do
                error: ""
              )}
 
-          {:error, reason} ->
-            {:noreply,
-             assign(socket,
-               selected_start: nil,
-               selected_end: nil,
-               move: nil,
-               game_map: socket.assigns.game_map,
-               error: reason
-             )}
+          {:error, reason, game_map} ->
+            socket =
+              socket
+              |> assign(
+                selected_start: nil,
+                selected_end: nil,
+                move: nil,
+                game_map: game_map,
+                error: reason
+              )
+              |> put_flash(:error, "Illegal move: #{reason}")
+
+            {:noreply, socket}
         end
 
       _ ->
@@ -110,15 +128,6 @@ defmodule BlackKnightPuzzleWeb.GameLive do
       src = "images/#{value}.png"
       html_content = "<img src=\"#{src}\" alt=\"#{value}\" style=\"width: 100%; height: auto;\">"
       Phoenix.HTML.raw(html_content)
-    end
-  end
-
-  defp process_move(move, game_map) do
-    if BlackKnight.is_move_legal?(game_map, move) do
-      updated_game_map = BlackKnight.update_position(game_map, move)
-      {:ok, updated_game_map}
-    else
-      {:error, "Move is not legal"}
     end
   end
 end
