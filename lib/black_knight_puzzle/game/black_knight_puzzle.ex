@@ -30,11 +30,28 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   """
 
   @doc """
-  We want to have two data structures 1 will have the current state of the game.
-  The next will have the move. I believe the black knight puzzle is taken out of the top left right of a chess board. 
-  So our rows will be denoted as 1,2,3 and our columns will be denoted as H,G,F,E,D,C
-  Moves will be denoted using classical chess algebaric notation. Rc3 (rook moves to C 3) But since we have multiple of the same Piece
-  we will need to use the fully qualified algebraic notation.  Rc2c3 (Rook at C 2 moves to C 3). In this puzzle there are no captures. So we can ignore that notation.
+  Processes a move in the game.
+
+  This function takes a `move` and the current `game_map` and processes the move by first checking if the move is legal.
+  If the move is illegal, it returns an error tuple with a reason. If the move is legal, it updates the game map,
+  and checks whether the game has finished. Depending on the game's state, it returns a tuple indicating the game's
+  completion status and the updated game map.
+
+  ## Parameters
+  - `game_map`: The current state of the game map before the move.
+  - `move`: The move to be processed. Expected to be a string representing a move. IE "Rc1c2"
+
+  ## Returns
+  - `{:ok, message, new_game_map}`: When the move is processed successfully. `message` will be "Game finished" or "Move processed".
+  - `{:error, reason, game_map}`: When the move is illegal. `reason` provides detail about why the move was rejected.
+
+  ## Examples
+
+      iex> BlackKnight.process_move(%{}, "Ke2e4") 
+      {:ok, "Move processed", %{}}
+
+      iex> BlackKnight.process_move(%{}, "invalid")
+      {:error, "Illegal move", %{}}
   """
   def process_move(game_state, move) do
     cond do
