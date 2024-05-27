@@ -75,4 +75,20 @@ defmodule BlackKnightPuzzle.Games do
     |> UserGameMove.changeset(attrs)
     |> Repo.insert()
   end
+
+  # database update
+  def update_user_game(id, attrs \\ %{}) do
+    UserGame
+    # Get the existing UserGame based on the ID provided
+    |> Repo.get(id)
+    |> case do
+      nil ->
+        {:error, :not_found}
+
+      user_game ->
+        user_game
+        |> UserGame.changeset(attrs)
+        |> Repo.update()
+    end
+  end
 end

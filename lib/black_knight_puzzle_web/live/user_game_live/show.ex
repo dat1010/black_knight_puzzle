@@ -31,11 +31,40 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
         lower = String.downcase("#{start_col}#{start_row}#{col}#{row}")
         move = "#{start_val}#{lower}"
 
-        case process_move(move, socket.assigns.game_map) do
-          {:ok, new_game_map} ->
+        case BlackKnight.process_move(socket.assigns.game_map, move) do
+          {:ok, "Game finished", new_game_map} ->
             Games.create_user_game_move(%{
               "user_game_id" => socket.assigns.user_game_id,
               "move" => move
+            })
+
+            Games.update_user_game(socket.assigns.user_game_id, %{
+              "current_state" => new_game_map,
+              "won" => true
+            })
+
+            socket =
+              socket
+              |> assign(
+                selected_start: nil,
+                selected_end: nil,
+                move: move,
+                game_map: new_game_map,
+                error: ""
+              )
+              |> put_flash(:info, "Congratulations! You've won the game!")
+
+            {:noreply, socket}
+
+          {:ok, _, new_game_map} ->
+            Games.create_user_game_move(%{
+              "user_game_id" => socket.assigns.user_game_id,
+              "move" => move
+            })
+
+            Games.update_user_game(socket.assigns.user_game_id, %{
+              "current_state" => new_game_map,
+              "won" => true
             })
 
             {:noreply,
@@ -47,15 +76,19 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
                error: ""
              )}
 
-          {:error, reason} ->
-            {:noreply,
-             assign(socket,
-               selected_start: nil,
-               selected_end: nil,
-               move: nil,
-               game_map: socket.assigns.game_map,
-               error: reason
-             )}
+          {:error, reason, game_map} ->
+            socket =
+              socket
+              |> assign(
+                selected_start: nil,
+                selected_end: nil,
+                move: nil,
+                game_map: game_map,
+                error: reason
+              )
+              |> put_flash(:error, "Illegal move: #{reason}")
+
+            {:noreply, socket}
         end
 
       _ ->
