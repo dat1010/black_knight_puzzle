@@ -1,7 +1,7 @@
 defmodule BlackKnightPuzzle.Game.BlackKnight do
   @moduledoc """
-  This module processes the Black Knight puzzle's logic, focusing on managing and validating moves for specific chess pieces. 
-  It does not solve the puzzle but instead checks the legality of moves and determines the game state, 
+  This module processes the Black Knight puzzle's logic, focusing on managing and validating moves for specific chess pieces.
+  It does not solve the puzzle but instead checks the legality of moves and determines the game state,
   indicating whether the player has won, the game is unfinished, or a move is illegal.
 
   The chess pieces included on the board are:
@@ -25,7 +25,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   - x: Unavailable space
   - 0: Free space (goal)
 
-  Moves are restricted to those that are standard for each chess piece, and the player's objective is to move 
+  Moves are restricted to those that are standard for each chess piece, and the player's objective is to move
   the Black Knight to the free space at the bottom right of the grid to win the puzzle.
   """
 
@@ -47,7 +47,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
 
   ## Examples
 
-      iex> BlackKnight.process_move(%{}, "Ke2e4") 
+      iex> BlackKnight.process_move(%{}, "Ke2e4")
       {:ok, "Move processed", %{}}
 
       iex> BlackKnight.process_move(%{}, "invalid")
@@ -183,18 +183,15 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
     value_at == "P"
   end
 
-  def is_place_empty?(_game_state, _move) do
-  end
-
   @doc """
   Rooks can only move left and right in the grid. So they can only traverse if a row or column stays the same.
   Biships can only travers diagonally so they can only travers and equal amount of rows and columns
-  Knights can only travers in an L shape 2 and 1. 2 on the row or column then 1 on the opposite direction. So if a knight went 2 on a row then they would need to go 1 in the column directions. 
+  Knights can only travers in an L shape 2 and 1. 2 on the row or column then 1 on the opposite direction. So if a knight went 2 on a row then they would need to go 1 in the column directions.
   This is also the same if they went 2 in the column direction they can only go 1 in the  row direction
   Knights is the only piece that can jump so as long as there is a spot available in the direction it can go then it can go there
   all other peices can't go through another piece.
   """
-  def is_move_legal?(_game_state, move) do
+  def is_move_legal?(game_state, move) do
     piece =
       move
       |> String.split("", trim: true)
@@ -202,22 +199,27 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
 
     position_from = get_move_from_position_string(move)
     position_to = get_move_to_position_string(move)
+    value_at = get_board_value_at(game_state, position_to)
 
-    case piece do
-      "R" ->
-        is_rook_move_legal?(position_from, position_to)
+    if position_to != position_from and value_at == 0 do
+      case piece do
+        "R" ->
+          is_rook_move_legal?(position_from, position_to)
 
-      "B" ->
-        is_bishop_move_legal?(position_from, position_to)
+        "B" ->
+          is_bishop_move_legal?(position_from, position_to)
 
-      "K" ->
-        is_knight_move_legal?(position_from, position_to)
+        "K" ->
+          is_knight_move_legal?(position_from, position_to)
 
-      "P" ->
-        is_knight_move_legal?(position_from, position_to)
+        "P" ->
+          is_knight_move_legal?(position_from, position_to)
 
-      _ ->
-        false
+        _ ->
+          false
+      end
+    else
+      false
     end
   end
 
