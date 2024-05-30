@@ -48,7 +48,7 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  host = System.get_env("PHX_HOST") || "example.com"
+  host = System.get_env("PHX_HOST") || "blackknightpuzzle.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
 
   config :black_knight_puzzle, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
@@ -96,6 +96,12 @@ if config_env() == :prod do
   #       force_ssl: [hsts: true]
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
+
+  config :black_knight_puzzle, BlackKnightPuzzle.Mailer,
+    adapter: Swoosh.Adapters.AmazonSES,
+    region: "us-east-1",
+    access_key: System.get_env("SES_ACCESS_KEY"),
+    secret: System.get_env("SES_SECRET")
 
   # ## Configuring the mailer
   #

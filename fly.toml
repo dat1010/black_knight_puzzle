@@ -13,7 +13,7 @@ kill_signal = 'SIGTERM'
   release_command = '/app/bin/migrate'
 
 [env]
-  PHX_HOST = 'black-knight-puzzle.fly.dev'
+  PHX_HOST = 'blackknightpuzzle.com'
   PORT = '8080'
 
 [http_service]

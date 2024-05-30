@@ -22,6 +22,8 @@ config :black_knight_puzzle, BlackKnightPuzzleWeb.Endpoint,
   pubsub_server: BlackKnightPuzzle.PubSub,
   live_view: [signing_salt: "6AzhVBcZ"]
 
+config :swoosh, :api_client, Swoosh.ApiClient.Hackney
+
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails
@@ -29,7 +31,13 @@ config :black_knight_puzzle, BlackKnightPuzzleWeb.Endpoint,
 #
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
-config :black_knight_puzzle, BlackKnightPuzzle.Mailer, adapter: Swoosh.Adapters.Local
+# config :black_knight_puzzle, BlackKnightPuzzle.Mailer, adapter: Swoosh.Adapters.Local
+
+config :black_knight_puzzle, BlackKnightPuzzle.Mailer,
+  adapter: Swoosh.Adapters.AmazonSES,
+  region: "us-east-1",
+  access_key: System.get_env("SES_ACCESS_KEY"),
+  secret: System.get_env("SES_SECRET")
 
 # Configure esbuild (the version is required)
 config :esbuild,

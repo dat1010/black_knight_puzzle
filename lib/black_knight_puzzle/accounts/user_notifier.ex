@@ -8,7 +8,7 @@ defmodule BlackKnightPuzzle.Accounts.UserNotifier do
     email =
       new()
       |> to(recipient)
-      |> from({"BlackKnightPuzzle", "contact@example.com"})
+      |> from({"BlackKnightPuzzle", "support@blackknightpuzzle.com"})
       |> subject(subject)
       |> text_body(body)
 
