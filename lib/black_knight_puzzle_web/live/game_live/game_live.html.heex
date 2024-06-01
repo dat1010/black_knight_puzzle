@@ -3,9 +3,7 @@
     <%= unless @current_user == nil do %>
       <button class="button is-primary is-medium" phx-click="new_game">New Game</button>
     <% end %>
-    <%= if @move do %>
-      <p class="is-size-4">Move: <%= @move %></p>
-    <% end %>
+    <p class="is-size-4">Move: <%= @move || "" %></p>
 
     <table class="table is-bordered is-striped" style="width: auto;">
       <!-- Column headers -->
