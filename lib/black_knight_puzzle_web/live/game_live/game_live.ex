@@ -66,7 +66,7 @@ defmodule BlackKnightPuzzleWeb.GameLive do
                 game_map: game_map,
                 error: reason
               )
-              |> put_flash(:error, "Illegal move: #{reason}")
+              |> LiveToast.put_toast(:error, "Illegal move.")
 
             {:noreply, socket}
         end
