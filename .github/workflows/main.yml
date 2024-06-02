@@ -1,4 +1,3 @@
-htmlCopy code
 name: Fly Deploy
 on: [pull_request]
 env:
