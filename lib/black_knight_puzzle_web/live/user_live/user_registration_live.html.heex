@@ -1,0 +1,57 @@
+<div class="container">
+  <div class="columns is-centered">
+    <div class="column is-half">
+      <div class="box">
+        <h3 class="title is-3 has-text-centered">
+          Register for an account
+        </h3>
+        <p class="subtitle has-text-centered">
+          Already registered?
+          <a href="/users/log_in" class="has-text-weight-semibold has-text-link">
+            Log in
+          </a>
+          to your account now.
+        </p>
+        <.simple_form
+          for={@form}
+          id="registration_form"
+          phx-submit="save"
+          phx-change="validate"
+          phx-trigger-action={@trigger_submit}
+          action={~p"/users/log_in?_action=registered"}
+          method="post"
+        >
+          <.error :if={@check_errors}>
+            Oops, something went wrong! Please check the errors below.
+          </.error>
+
+          <div class="field">
+            <label class="label" for="email">Email</label>
+            <div class="control">
+              <!--     <input class="input" type="email" id="email" name="email" required /> -->
+              <.input field={@form[:email]} type="email" required />
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="password">Password</label>
+            <div class="control">
+              <!--     <input class="input" type="password" id="password" name="password" required /> -->
+              <.input field={@form[:password]} type="password" required />
+            </div>
+          </div>
+
+          <:actions>
+            <div class="field">
+              <div class="control">
+                <button type="submit" class="button is-link is-fullwidth">
+                  Create an account
+                </button>
+              </div>
+            </div>
+            <!-- <.button phx-disable-with="Creating account..." class="w-full"></.button> -->
+          </:actions>
+        </.simple_form>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,5 +1,35 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import "bulma/css/bulma.css";
+
+/* Custom CSS to override conflicting styles */
+.notification.is-light {
+  background-color: #f5f5f5;
+  color: #4a4a4a;
+}
+
+.notification.is-info {
+  background-color: #209cee;
+  color: #fff;
+}
+
+.notification.is-danger {
+  background-color: #ff3860;
+  color: #fff;
+}
+
+.notification.is-hidden {
+  display: none;
+}
+
+/* Ensure toast notifications are positioned absolutely and have a more rectangular shape */
+.toast-notification {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999; /* Ensure it's above other elements */
+  width: auto;
+  max-width: 400px; /* Increase the max-width for a more rectangular shape */
+  padding: 1rem 2rem; /* Adjust padding for a more rectangular shape */
+  border-radius: 4px; /* Slightly rounded corners for a rectangular shape */
+}
 
 /* This file is for your main application CSS */

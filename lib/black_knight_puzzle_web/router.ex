@@ -20,7 +20,7 @@ defmodule BlackKnightPuzzleWeb.Router do
   scope "/", BlackKnightPuzzleWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", GameLive
   end
 
   # Other scopes may use custom stacks.
@@ -68,6 +68,8 @@ defmodule BlackKnightPuzzleWeb.Router do
       on_mount: [{BlackKnightPuzzleWeb.UserAuth, :ensure_authenticated}] do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
+      live "/users/:id/games", UserGameLive
+      live "/users/:id/games/:id", UserGameLive.Show
     end
   end
 

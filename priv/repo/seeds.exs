@@ -9,3 +9,9 @@
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
+
+BlackKnightPuzzle.Games.Game.changeset(%BlackKnightPuzzle.Games.Game{}, %{
+  name: "BlackKnightPuzzle",
+  start_state: BlackKnightPuzzle.Game.BlackKnight.set_board()
+})
+|> BlackKnightPuzzle.Repo.insert()
