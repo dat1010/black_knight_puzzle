@@ -9,6 +9,7 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
     user_game = Games.get_user_game_by_id(user_game_id)
 
     current_state = convert_from_json_to_map(user_game.current_state)
+    count = Enum.count(user_game.user_game_moves)
 
     {:ok,
      assign(socket,
@@ -17,6 +18,7 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
        selected_start: nil,
        selected_end: nil,
        move: nil,
+       move_count: count || 0,
        error: nil
        # current_user: get_current_user(session)
      )}
@@ -49,6 +51,7 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
                 selected_start: nil,
                 selected_end: nil,
                 move: move,
+                move_count: socket.assigns.move_count + 1,
                 game_map: new_game_map,
                 error: ""
               )
@@ -72,6 +75,7 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
                selected_start: nil,
                selected_end: nil,
                move: move,
+               move_count: socket.assigns.move_count + 1,
                game_map: new_game_map,
                error: ""
              )}
@@ -83,10 +87,11 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
                 selected_start: nil,
                 selected_end: nil,
                 move: nil,
+                move_count: socket.assigns.move_count,
                 game_map: game_map,
                 error: reason
               )
-              |> put_flash(:error, "Illegal move: #{reason}")
+              |> LiveToast.put_toast(:error, "Illegal move.")
 
             {:noreply, socket}
         end
@@ -97,6 +102,7 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
            selected_start: nil,
            selected_end: nil,
            move: nil,
+           move_count: 0,
            game_map: socket.assigns.game_map
          )}
     end

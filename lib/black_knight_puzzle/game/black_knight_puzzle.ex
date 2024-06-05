@@ -87,21 +87,6 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
     %{H: 1, G: 2, F: 3, E: 4, D: 5, C: 6}
   end
 
-  # node and list as sectond element of tuple
-  # {1, [{2,[]}, {3, []}]}
-  # task supervisor, with max limit of task to tart parallel process of a sub tree
-  # md5 elang, lib crypto
-  # create function to get empty cell
-  # 1, store game state, 2 store move Rc2c3, 3 empty node
-  # look through the subtree if state exists?
-  # hash state and compare hashes
-  # circiut braker
-  # bredth first
-  # 0 -> rc2c3 
-  #   -> rd3c3
-  #   -> ke3c3
-  #
-
   @doc """
   updates the current game state with the new position
   """

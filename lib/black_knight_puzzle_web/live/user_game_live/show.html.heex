@@ -1,38 +1,56 @@
 <div class="is-flex is-justify-content-center is-align-items-center">
   <div>
-    <%= if @move do %>
-      <p>Move: <%= @move %></p>
-    <% end %>
-    <table class="table is-bordered is-striped" style="width: auto;">
-      <!-- Column headers -->
-      <thead>
-        <tr>
-          <th></th>
-          <%= for col <- ['H', 'G', 'F', 'E', 'D', 'C'] do %>
-            <th class="is-size-5"><%= col %></th>
-          <% end %>
-        </tr>
-      </thead>
-      <!-- Rows with data and row labels -->
-      <tbody>
-        <%= for {row_index, row} <- @game_map do %>
+    <div class="container">
+      <div class="columns">
+        <div class="column">
+          <p class="is-size-4">Move: <%= @move || "" %></p>
+        </div>
+        <div class="column">
+          <p class="is-size-4">Count: <%= @move_count || "" %></p>
+        </div>
+      </div>
+
+      <table class="table is-bordered is-striped" style="width: auto;">
+        <!-- Column headers -->
+        <thead>
           <tr>
-            <th class="is-size-5"><%= row_index %></th>
-            <%= for {col_index, value} <- Enum.reverse(Map.to_list(row)) do %>
-              <td
-                class={"has-background-" <> chess_color(row_index, col_index, value)}
-                phx-click="select_position"
-                phx-value-row={row_index}
-                phx-value-col={col_index}
-                phx-value-val={value}
-                style="width: 75px; height: 75px; text-align: center; vertical-align: middle; font-size: 20px;"
-              >
-                <%= if value != 0, do: image_tag(value) %>
-              </td>
+            <th></th>
+            <%= for col <- ['H', 'G', 'F', 'E', 'D', 'C'] do %>
+              <th class="is-size-5"><%= col %></th>
             <% end %>
           </tr>
-        <% end %>
-      </tbody>
-    </table>
+        </thead>
+        <!-- Rows with data and row labels -->
+        <tbody>
+          <%= for {row_index, row} <- @game_map do %>
+            <tr>
+              <th class="is-size-5"><%= row_index %></th>
+              <%= for {col_index, value} <- Enum.reverse(Map.to_list(row)) do %>
+                <td
+                  class={"has-background-" <> chess_color(row_index, col_index, value)}
+                  phx-click="select_position"
+                  phx-value-row={row_index}
+                  phx-value-col={col_index}
+                  phx-value-val={value}
+                  style="width: 75px; height: 75px; text-align: center; vertical-align: middle; font-size: 20px;"
+                >
+                  <%= if value != 0, do: image_tag(value) %>
+                </td>
+              <% end %>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    <div class="container">
+      <div class="notification is-light">
+        <p class="subtitle is-5">
+          Move the black knight to the bottom right black square using standard chess moves.
+        </p>
+        <p class="subtitle is-5">
+          Click on a piece to select it, then click on the destination square to move it.
+        </p>
+      </div>
+    </div>
   </div>
 </div>
