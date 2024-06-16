@@ -66,6 +66,7 @@ defmodule BlackKnightPuzzle.Games do
   def list_user_games_by_user_id(user_id) do
     from(g in UserGame,
       where: g.user_id == ^user_id,
+      order_by: [desc: g.updated_at],
       preload: [:user_game_moves]
     )
     |> Repo.all()
