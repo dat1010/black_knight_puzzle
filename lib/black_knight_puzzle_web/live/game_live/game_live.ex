@@ -14,6 +14,7 @@ defmodule BlackKnightPuzzleWeb.GameLive do
        selected_end: nil,
        move: nil,
        error: nil,
+       move_count: 0,
        current_user: get_current_user(session)
      )}
   end
@@ -39,6 +40,7 @@ defmodule BlackKnightPuzzleWeb.GameLive do
                 selected_start: nil,
                 selected_end: nil,
                 move: move,
+                move_count: socket.assigns.move_count + 1,
                 game_map: new_game_map,
                 error: ""
               )
@@ -52,6 +54,7 @@ defmodule BlackKnightPuzzleWeb.GameLive do
                selected_start: nil,
                selected_end: nil,
                move: move,
+               move_count: socket.assigns.move_count + 1,
                game_map: new_game_map,
                error: ""
              )}
@@ -63,6 +66,7 @@ defmodule BlackKnightPuzzleWeb.GameLive do
                 selected_start: nil,
                 selected_end: nil,
                 move: nil,
+                move_count: socket.assigns.move_count,
                 game_map: game_map,
                 error: reason
               )
@@ -77,6 +81,7 @@ defmodule BlackKnightPuzzleWeb.GameLive do
            selected_start: nil,
            selected_end: nil,
            move: nil,
+           move_count: 0,
            game_map: socket.assigns.game_map
          )}
     end

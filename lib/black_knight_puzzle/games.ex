@@ -44,7 +44,12 @@ defmodule BlackKnightPuzzle.Games do
 
   """
   def get_user_game_by_id(user_game_id) do
-    Repo.get(UserGame, user_game_id)
+    from(g in UserGame,
+      where: g.id == ^user_game_id,
+      preload: [:user_game_moves]
+    )
+    |> Repo.all()
+    |> hd
   end
 
   @doc """
@@ -59,7 +64,12 @@ defmodule BlackKnightPuzzle.Games do
     []
   """
   def list_user_games_by_user_id(user_id) do
-    from(g in UserGame, where: g.user_id == ^user_id) |> Repo.all()
+    from(g in UserGame,
+      where: g.user_id == ^user_id,
+      order_by: [desc: g.updated_at],
+      preload: [:user_game_moves]
+    )
+    |> Repo.all()
   end
 
   # database inserts

@@ -7,6 +7,7 @@ defmodule BlackKnightPuzzle.Games.UserGame do
     field :won, :boolean, default: false
     belongs_to :user, BlackKnightPuzzle.Accounts.User
     belongs_to :game, BlackKnightPuzzle.Games.Game
+    has_many :user_game_moves, BlackKnightPuzzle.Games.UserGameMove
 
     timestamps()
   end
@@ -15,5 +16,6 @@ defmodule BlackKnightPuzzle.Games.UserGame do
     user_game
     |> cast(attrs, [:user_id, :game_id, :current_state, :won])
     |> validate_required([:user_id, :game_id])
+    |> cast_assoc(:user_game_moves)
   end
 end
