@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "bulma": "^1.0.1"
+    "bulma": "^1.0.1",
+    "chess.js": "^1.4.0"
   }
 }
