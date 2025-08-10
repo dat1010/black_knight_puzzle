@@ -33,3 +33,21 @@
 }
 
 /* This file is for your main application CSS */
+
+/* Prevent native image drag/download behavior during DnD on the board */
+#chess-board, #chess-board table {
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+#chess-board img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+/* Hover highlight during pointer DnD */
+#chess-board td.drop-hover {
+  outline: 3px solid #3273dc;
+  outline-offset: -3px;
+}

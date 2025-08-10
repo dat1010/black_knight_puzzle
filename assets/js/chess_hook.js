@@ -9,6 +9,7 @@ const ChessHook = {
     // Optional visual cue that hook is active
     // this.el.style.outline = '2px solid #f39c12'
 
+    // Click-to-move validator (non-invasive)
     this.onClick = (evt) => {
       const td = evt.target.closest('td')
       if (!td) return
@@ -37,11 +38,112 @@ const ChessHook = {
       this.start = null
     }
 
+    // Disable native image drag to avoid macOS “save image” behavior
+    this.onNativeDragStartBlock = (evt) => { evt.preventDefault() }
+
+    // Drag-and-drop support (pointer-driven, not HTML5 DnD)
+    this.drag = null
+    this.hoverTd = null
+    this.onPointerDown = (evt) => {
+      evt.preventDefault()
+      const td = evt.target.closest('td')
+      if (!td) return
+      const val = td.getAttribute('phx-value-val')
+      if (!val || val === '0' || val === 'x') return
+      const row = td.getAttribute('phx-value-row')
+      const col = td.getAttribute('phx-value-col')
+      const img = td.querySelector('img')
+      if (!row || !col || !img) return
+      // start drag
+      const rect = img.getBoundingClientRect()
+      const ghost = img.cloneNode(true)
+      // Ensure the ghost image keeps the same on-screen size as the original
+      ghost.style.position = 'fixed'
+      ghost.style.width = `${rect.width}px`
+      ghost.style.height = `${rect.height}px`
+      ghost.style.maxWidth = 'none'
+      ghost.style.maxHeight = 'none'
+      ghost.style.left = `${evt.clientX - (rect.width / 2)}px`
+      ghost.style.top = `${evt.clientY - (rect.height / 2)}px`
+      ghost.style.pointerEvents = 'none'
+      ghost.style.opacity = '0.95'
+      ghost.style.zIndex = '9999'
+      ghost.style.objectFit = 'contain'
+      ghost.style.border = 'none'
+      document.body.appendChild(ghost)
+      this.drag = {
+        start: { row, col, val },
+        ghost,
+        offsetX: rect.width / 2,
+        offsetY: rect.height / 2
+      }
+      // block native drag on the image
+      img.addEventListener('dragstart', this.onNativeDragStartBlock, { once: true })
+      window.addEventListener('pointermove', this.onPointerMove)
+      window.addEventListener('pointerup', this.onPointerUp, { once: true })
+      window.addEventListener('pointercancel', this.onPointerCancel, { once: true })
+    }
+
+    this.onPointerMove = (evt) => {
+      if (!this.drag) return
+      const { ghost, offsetX, offsetY } = this.drag
+      ghost.style.left = `${evt.clientX - offsetX}px`
+      ghost.style.top = `${evt.clientY - offsetY}px`
+
+      // highlight hovered cell
+      const td = document.elementFromPoint(evt.clientX, evt.clientY)?.closest('td')
+      if (td !== this.hoverTd) {
+        if (this.hoverTd) this.hoverTd.classList.remove('drop-hover')
+        if (td) td.classList.add('drop-hover')
+        this.hoverTd = td || null
+      }
+    }
+
+    this.onPointerUp = (evt) => {
+      if (!this.drag) return
+      const { start, ghost } = this.drag
+      const td = document.elementFromPoint(evt.clientX, evt.clientY)?.closest('td')
+      if (!td) {
+        ghost.remove()
+        if (this.hoverTd) this.hoverTd.classList.remove('drop-hover')
+        this.hoverTd = null
+        this.drag = null
+        return
+      }
+      const row = td.getAttribute('phx-value-row')
+      const col = td.getAttribute('phx-value-col')
+      const val = td.getAttribute('phx-value-val')
+      const finish = { row, col, val }
+      const isValid = this.validateWithChess(start, finish)
+      if (!isValid) {
+        td.animate([{ backgroundColor: '#ffdddd' }, { backgroundColor: '' }], { duration: 300 })
+      }
+      // Always simulate the existing two-click flow so the server can display
+      // the same "Illegal move" feedback on invalid drops
+      this.pushEvent('select_position', { row: start.row, col: start.col, val: start.val })
+      this.pushEvent('select_position', { row, col, val })
+      ghost.remove()
+      if (this.hoverTd) this.hoverTd.classList.remove('drop-hover')
+      this.hoverTd = null
+      this.drag = null
+    }
+
+    this.onPointerCancel = () => {
+      if (!this.drag) return
+      this.drag.ghost.remove()
+      if (this.hoverTd) this.hoverTd.classList.remove('drop-hover')
+      this.hoverTd = null
+      this.drag = null
+    }
+
     this.el.addEventListener('click', this.onClick, true)
+    this.attachListeners()
+    this.refreshDraggablePieces()
   },
 
   destroyed() {
     if (this.onClick) this.el.removeEventListener('click', this.onClick, true)
+    this.detachListeners()
   },
 
   validateWithChess(start, finish) {
@@ -93,6 +195,45 @@ const ChessHook = {
 
   toSquare(col, row) {
     return `${String(col).toLowerCase()}${row}`
+  }
+  ,
+  updated() {
+    // LiveView re-render may replace DOM; re-bind listeners and re-enable draggables
+    this.detachListeners()
+    this.boardTable = this.el.querySelector('table')
+    this.attachListeners()
+    this.refreshDraggablePieces()
+  },
+
+  refreshDraggablePieces() {
+    const tds = this.boardTable?.querySelectorAll('tbody td') || []
+    tds.forEach((td) => {
+      const val = td.getAttribute('phx-value-val')
+      const img = td.querySelector('img')
+      if (!img) return
+      const isPiece = val && val !== '0' && val !== 'x'
+      // Make both the img and the td draggable to avoid browser “download image” default
+      if (isPiece) {
+        // disable native dnd; we use pointer-driven drag
+        img.setAttribute('draggable', 'false')
+        td.setAttribute('draggable', 'false')
+        img.style.cursor = 'grab'
+      } else {
+        img.setAttribute('draggable', 'false')
+        td.setAttribute('draggable', 'false')
+        img.style.cursor = 'default'
+      }
+    })
+  }
+  ,
+  attachListeners() {
+    if (!this.boardTable) return
+    // Pointer-driven drag only
+    this.boardTable.addEventListener('pointerdown', this.onPointerDown, true)
+  },
+  detachListeners() {
+    if (!this.boardTable) return
+    this.boardTable.removeEventListener('pointerdown', this.onPointerDown, true)
   }
 }
 
