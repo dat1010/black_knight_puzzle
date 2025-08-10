@@ -24,6 +24,7 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import { createLiveToastHook } from 'live_toast'
+import ChessHook from './chess_hook'
 
 // the duration for each toast to stay on screen in ms
 const duration = 1000
@@ -37,7 +38,7 @@ let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: { LiveToast: liveToastHook }
+  hooks: { LiveToast: liveToastHook, ChessHook: ChessHook }
 })
 
 // Show progress bar on live navigation and form submits

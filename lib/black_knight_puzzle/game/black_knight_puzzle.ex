@@ -204,10 +204,10 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
     if position_to != position_from and value_at == 0 do
       case piece do
         "R" ->
-          is_rook_move_legal?(position_from, position_to)
+          is_rook_move_legal?(game_state, position_from, position_to)
 
         "B" ->
-          is_bishop_move_legal?(position_from, position_to)
+          is_bishop_move_legal?(game_state, position_from, position_to)
 
         "K" ->
           is_knight_move_legal?(position_from, position_to)
@@ -256,7 +256,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   end
 
   @doc false
-  defp is_bishop_move_legal?(position_from, position_to) do
+  defp is_bishop_move_legal?(game_state, position_from, position_to) do
     from_column_atom = get_column_atom(position_from)
     from_row_integer = get_row_integer(position_from)
 
@@ -269,11 +269,11 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
     delta_x = abs(from_column_integer - to_column_integer)
     delta_y = abs(from_row_integer - to_row_integer)
 
-    delta_x == delta_y
+    delta_x == delta_y and path_clear_diagonal?(game_state, position_from, position_to)
   end
 
   @doc false
-  defp is_rook_move_legal?(position_from, position_to) do
+  defp is_rook_move_legal?(game_state, position_from, position_to) do
     from_column_atom = get_column_atom(position_from)
     from_row_integer = get_row_integer(position_from)
 
@@ -282,13 +282,86 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
 
     cond do
       from_column_atom == to_column_atom ->
-        true
+        path_clear_linear?(game_state, position_from, position_to)
 
       to_row_integer == from_row_integer ->
-        true
+        path_clear_linear?(game_state, position_from, position_to)
 
       true ->
         false
+    end
+  end
+
+  # Returns true if all intermediate squares between from and to are empty (0) and not blocked ("x")
+  defp path_clear_linear?(game_state, position_from, position_to) do
+    from_col = get_column_atom(position_from)
+    from_row = get_row_integer(position_from)
+    to_col = get_column_atom(position_to)
+    to_row = get_row_integer(position_to)
+
+    cols = value_map()
+
+    cond do
+      from_col == to_col ->
+        # moving along column: vary rows by step
+        steps = abs(to_row - from_row) - 1
+        if steps <= 0 do
+          true
+        else
+          step = if to_row > from_row, do: 1, else: -1
+          Enum.all?(1..steps, fn i ->
+            r = from_row + i * step
+            pos = "#{Atom.to_string(from_col) |> String.downcase()}#{r}"
+            get_board_value_at(game_state, pos) == 0
+          end)
+        end
+
+      from_row == to_row ->
+        # moving along row: vary columns via numeric mapping
+        from_c_i = cols[from_col]
+        to_c_i = cols[to_col]
+        steps = abs(to_c_i - from_c_i) - 1
+        if steps <= 0 do
+          true
+        else
+          step = if to_c_i > from_c_i, do: 1, else: -1
+          Enum.all?(1..steps, fn i ->
+            ci = from_c_i + i * step
+            col_atom = Enum.find(cols, fn {_k, v} -> v == ci end) |> elem(0)
+            pos = "#{Atom.to_string(col_atom) |> String.downcase()}#{from_row}"
+            get_board_value_at(game_state, pos) == 0
+          end)
+        end
+
+      true ->
+        false
+    end
+  end
+
+  # Returns true if all intermediate diagonal squares are empty
+  defp path_clear_diagonal?(game_state, position_from, position_to) do
+    from_col = get_column_atom(position_from)
+    from_row = get_row_integer(position_from)
+    to_col = get_column_atom(position_to)
+    to_row = get_row_integer(position_to)
+
+    cols = value_map()
+    from_c_i = cols[from_col]
+    to_c_i = cols[to_col]
+
+    steps = abs(to_c_i - from_c_i) - 1
+    if steps <= 0 do
+      true
+    else
+      step_c = if to_c_i > from_c_i, do: 1, else: -1
+      step_r = if to_row > from_row, do: 1, else: -1
+      Enum.all?(1..steps, fn s ->
+        ci = from_c_i + s * step_c
+        ri = from_row + s * step_r
+        col_atom = Enum.find(cols, fn {_k, v} -> v == ci end) |> elem(0)
+        pos = "#{Atom.to_string(col_atom) |> String.downcase()}#{ri}"
+        get_board_value_at(game_state, pos) == 0
+      end)
     end
   end
 end
