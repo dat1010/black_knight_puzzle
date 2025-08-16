@@ -24,10 +24,9 @@ FROM ${BUILDER_IMAGE} as builder
 RUN apt-get update -y && apt-get install -y build-essential git curl \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
-# install node 18 for modern JS features
+# install node 18 for modern JS features (includes compatible npm)
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
+    && apt-get install -y nodejs
 
 # prepare build dir
 WORKDIR /app
