@@ -21,8 +21,13 @@ ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
 FROM ${BUILDER_IMAGE} as builder
 
 # install build dependencies
-RUN apt-get update -y && apt-get install -y build-essential git nodejs npm \
+RUN apt-get update -y && apt-get install -y build-essential git curl \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
+
+# install node 18 for modern JS features
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest
 
 # prepare build dir
 WORKDIR /app
@@ -50,12 +55,10 @@ COPY priv priv
 COPY lib lib
 
 COPY assets assets
+COPY package.json package-lock.json ./
 
-# install frontend dependencies for assets (needed for chess.js)
-RUN npm ci --prefix assets || npm install --prefix assets
-
-# compile assets
-RUN mix assets.deploy
+# install frontend deps and compile assets
+RUN npm ci && mix assets.deploy
 
 # Compile the release
 RUN mix compile
