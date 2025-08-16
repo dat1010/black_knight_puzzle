@@ -18,6 +18,7 @@
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
 import "../css/app.css";
+import "../css/chessground.css";
 
 // Establish Phoenix Socket and LiveView configuration.
 import {Socket} from "phoenix"

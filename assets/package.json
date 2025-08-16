@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "chess.js": "^1.4.0"
+    "chess.js": "^1.4.0",
+    "chessground": "^9.0.4"
   }
 }
