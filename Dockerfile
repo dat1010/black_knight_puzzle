@@ -54,10 +54,9 @@ COPY priv priv
 COPY lib lib
 
 COPY assets assets
-COPY package.json package-lock.json ./
 
 # install frontend deps and compile assets
-RUN npm ci && mix assets.deploy
+RUN cd assets && npm install && cd .. && mix assets.deploy
 
 # Compile the release
 RUN mix compile
