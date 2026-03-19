@@ -1,4 +1,4 @@
-import { Chess } from 'chess.js'
+import { Chess } from '../vendor/chess.js'
 
 // Non-invasive validation hook: only blocks the second click if chess.js deems the move illegal.
 // Otherwise it lets the existing LiveView click flow run unchanged.
