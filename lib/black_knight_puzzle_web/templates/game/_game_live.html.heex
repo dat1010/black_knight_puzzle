@@ -20,7 +20,7 @@
     }
   </style>
 
-  <%= unless @current_user == nil do %>
+  <%= if @current_user do %>
     <button phx-click="new_game">New Game</button>
   <% end %>
   <%= if @move do %>

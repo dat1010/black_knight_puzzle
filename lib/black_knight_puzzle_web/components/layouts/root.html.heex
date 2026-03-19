@@ -11,74 +11,74 @@
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
   </head>
-  <nav class="navbar" role="navigation" aria-label="main navigation">
-    <div class="navbar-brand">
-      <a
-        role="button"
-        class="navbar-burger"
-        aria-label="menu"
-        aria-expanded="false"
-        data-target="navbarBasicExample"
-      >
-        <span aria-hidden="true"></span>
-        <span aria-hidden="true"></span>
-        <span aria-hidden="true"></span>
-        <span aria-hidden="true"></span>
-      </a>
-    </div>
-
-    <div id="navbarBasicExample" class="navbar-menu">
-      <div class="navbar-start">
-        <a class="navbar-item" href="/">
-          Home
+  <body class="bg-white antialiased">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a
+          role="button"
+          class="navbar-burger"
+          aria-label="menu"
+          aria-expanded="false"
+          data-target="navbarBasicExample"
+        >
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
         </a>
-
-        <%= if @current_user do %>
-          <a class="navbar-item" href={~p"/users/#{@current_user.id}/games"}>
-            My Games
-          </a>
-        <% end %>
       </div>
 
-      <%= if !@current_user do %>
-        <div class="navbar-end">
-          <div class="navbar-item">
-            <div class="buttons">
-              <a class="button is-primary" href={~p"/users/register"}>
-                <strong>Sign up</strong>
-              </a>
-              <a class="button is-light" href={~p"/users/log_in"}>
-                Log in
-              </a>
-            </div>
-          </div>
-        </div>
-      <% else %>
-        <div class="navbar-end">
-          <div class="navbar-item">
-            <div class="buttons">
-              <a class="button is-light" href={~p"/users/settings"}>
-                Settings
-              </a>
+      <div id="navbarBasicExample" class="navbar-menu">
+        <div class="navbar-start">
+          <a class="navbar-item" href="/">
+            Home
+          </a>
 
-              <ul>
-                <li>
-                  <.link
-                    href={~p"/users/log_out"}
-                    method="delete"
-                    class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-                  >
-                    Log out
-                  </.link>
-                </li>
-              </ul>
+          <%= if @current_user do %>
+            <a class="navbar-item" href={~p"/users/#{@current_user.id}/games"}>
+              My Games
+            </a>
+          <% end %>
+        </div>
+
+        <%= if !@current_user do %>
+          <div class="navbar-end">
+            <div class="navbar-item">
+              <div class="buttons">
+                <a class="button is-primary" href={~p"/users/register"}>
+                  <strong>Sign up</strong>
+                </a>
+                <a class="button is-light" href={~p"/users/log_in"}>
+                  Log in
+                </a>
+              </div>
             </div>
           </div>
-        </div>
-      <% end %>
-    </div>
-  </nav>
-  <body class="bg-white antialiased">
+        <% else %>
+          <div class="navbar-end">
+            <div class="navbar-item">
+              <div class="buttons">
+                <a class="button is-light" href={~p"/users/settings"}>
+                  Settings
+                </a>
+
+                <ul>
+                  <li>
+                    <.link
+                      href={~p"/users/log_out"}
+                      method="delete"
+                      class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+                    >
+                      Log out
+                    </.link>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </nav>
     <%= @inner_content %>
   </body>
 </html>

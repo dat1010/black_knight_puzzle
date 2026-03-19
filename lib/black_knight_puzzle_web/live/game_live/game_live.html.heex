@@ -1,6 +1,6 @@
 <div class="is-flex is-justify-content-center is-align-items-center">
   <div>
-    <%= unless @current_user == nil do %>
+    <%= if @current_user do %>
       <button class="button is-primary is-medium" phx-click="new_game">New Game</button>
     <% end %>
 
