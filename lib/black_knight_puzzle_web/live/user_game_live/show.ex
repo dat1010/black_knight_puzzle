@@ -66,8 +66,7 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
             })
 
             Games.update_user_game(socket.assigns.user_game_id, %{
-              "current_state" => new_game_map,
-              "won" => true
+              "current_state" => new_game_map
             })
 
             {:noreply,

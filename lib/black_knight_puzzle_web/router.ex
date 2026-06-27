@@ -21,6 +21,7 @@ defmodule BlackKnightPuzzleWeb.Router do
     pipe_through :browser
 
     live "/", GameLive
+    live "/daily", DailyPuzzleLive
   end
 
   # Other scopes may use custom stacks.
