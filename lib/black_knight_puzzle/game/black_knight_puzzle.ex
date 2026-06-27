@@ -10,6 +10,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   3. Four White Bishops
   4. Four White Rooks
   A total of 13 pieces are present.
+  A total of 13 pieces are present.
 
   The puzzle is set on a 3x6 grid, with the bottom left five cells marked as unavailable:
   0  H  G  F  E  D  C
@@ -305,10 +306,12 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
       from_col == to_col ->
         # moving along column: vary rows by step
         steps = abs(to_row - from_row) - 1
+
         if steps <= 0 do
           true
         else
           step = if to_row > from_row, do: 1, else: -1
+
           Enum.all?(1..steps, fn i ->
             r = from_row + i * step
             pos = "#{Atom.to_string(from_col) |> String.downcase()}#{r}"
@@ -321,10 +324,12 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
         from_c_i = cols[from_col]
         to_c_i = cols[to_col]
         steps = abs(to_c_i - from_c_i) - 1
+
         if steps <= 0 do
           true
         else
           step = if to_c_i > from_c_i, do: 1, else: -1
+
           Enum.all?(1..steps, fn i ->
             ci = from_c_i + i * step
             col_atom = Enum.find(cols, fn {_k, v} -> v == ci end) |> elem(0)
@@ -350,11 +355,13 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
     to_c_i = cols[to_col]
 
     steps = abs(to_c_i - from_c_i) - 1
+
     if steps <= 0 do
       true
     else
       step_c = if to_c_i > from_c_i, do: 1, else: -1
       step_r = if to_row > from_row, do: 1, else: -1
+
       Enum.all?(1..steps, fn s ->
         ci = from_c_i + s * step_c
         ri = from_row + s * step_r
