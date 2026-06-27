@@ -200,10 +200,7 @@ const ChessHook = {
     if (!this.selectedCell) return
 
     if (!isLegalDestination(this.el, this.selectedCell, cell)) {
-      if (isPieceCell(cell)) {
-        this.selectCell(cell)
-      }
-
+      if (isPieceCell(cell)) this.selectCell(cell)
       return
     }
 

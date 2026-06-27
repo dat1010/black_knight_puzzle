@@ -8,95 +8,77 @@
       <%= assigns[:page_title] || "BlackKnightPuzzle" %>
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
-    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" />
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
-    <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}></script>
-    <style>
-      /* Custom piece theme */
-      .piece-417db.bN {
-        background-image: url('/images/P-4920ed7f59cf8d412069d3f9990803c4.png') !important;
-      }
-      .piece-417db.wN {
-        background-image: url('/images/K-aab153993d4b3235552db0b9b37936a1.png') !important;
-      }
-      .piece-417db.wB {
-        background-image: url('/images/B-1f4217e5ecaf310f9ba9611179ef7198.png') !important;
-      }
-      .piece-417db.wR {
-        background-image: url('/images/R-9d30250c993a9b31c0038c10137311a7.png') !important;
-      }
-    </style>
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
+    </script>
   </head>
-  <body class="bg-white antialiased">
-    <nav class="navbar" role="navigation" aria-label="main navigation">
-      <div class="navbar-brand">
-        <a
-          role="button"
-          class="navbar-burger"
-          aria-label="menu"
-          aria-expanded="false"
-          data-target="navbarBasicExample"
-        >
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
+  <nav class="navbar" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a
+        role="button"
+        class="navbar-burger"
+        aria-label="menu"
+        aria-expanded="false"
+        data-target="navbarBasicExample"
+      >
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </a>
+    </div>
+
+    <div id="navbarBasicExample" class="navbar-menu">
+      <div class="navbar-start">
+        <a class="navbar-item" href="/">
+          Home
         </a>
-      </div>
 
-      <div id="navbarBasicExample" class="navbar-menu">
-        <div class="navbar-start">
-          <a class="navbar-item" href="/">
-            Home
+        <%= if @current_user do %>
+          <a class="navbar-item" href={~p"/users/#{@current_user.id}/games"}>
+            My Games
           </a>
-
-          <%= if @current_user do %>
-            <a class="navbar-item" href={~p"/users/#{@current_user.id}/games"}>
-              My Games
-            </a>
-          <% end %>
-        </div>
-
-        <%= if !@current_user do %>
-          <div class="navbar-end">
-            <div class="navbar-item">
-              <div class="buttons">
-                <a class="button is-primary" href={~p"/users/register"}>
-                  <strong>Sign up</strong>
-                </a>
-                <a class="button is-light" href={~p"/users/log_in"}>
-                  Log in
-                </a>
-              </div>
-            </div>
-          </div>
-        <% else %>
-          <div class="navbar-end">
-            <div class="navbar-item">
-              <div class="buttons">
-                <a class="button is-light" href={~p"/users/settings"}>
-                  Settings
-                </a>
-
-                <ul>
-                  <li>
-                    <.link
-                      href={~p"/users/log_out"}
-                      method="delete"
-                      class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-                    >
-                      Log out
-                    </.link>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
         <% end %>
       </div>
-    </nav>
 
+      <%= if !@current_user do %>
+        <div class="navbar-end">
+          <div class="navbar-item">
+            <div class="buttons">
+              <a class="button is-primary" href={~p"/users/register"}>
+                <strong>Sign up</strong>
+              </a>
+              <a class="button is-light" href={~p"/users/log_in"}>
+                Log in
+              </a>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="navbar-end">
+          <div class="navbar-item">
+            <div class="buttons">
+              <a class="button is-light" href={~p"/users/settings"}>
+                Settings
+              </a>
+
+              <ul>
+                <li>
+                  <.link
+                    href={~p"/users/log_out"}
+                    method="delete"
+                    class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+                  >
+                    Log out
+                  </.link>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </nav>
+  <body class="bg-white antialiased">
     <%= @inner_content %>
   </body>
 </html>
