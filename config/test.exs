@@ -3,6 +3,11 @@ import Config
 # Only in tests, remove the complexity from the password hashing algorithm
 config :bcrypt_elixir, :log_rounds, 1
 
+config :black_knight_puzzle, :daily_puzzle_generator,
+  min_solution_length: 1,
+  max_solution_length: 40,
+  max_attempts: 10
+
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used

@@ -53,22 +53,22 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
       iex> BlackKnight.process_move(%{}, "invalid")
       {:error, "Illegal move", %{}}
   """
-  def process_move(game_state, move) do
+  def process_move(game_state, move, winning_spot \\ "c3") do
     cond do
       !is_move_legal?(game_state, move) ->
         {:error, "Illegal move", game_state}
 
       is_move_legal?(game_state, move) ->
         updated_game_state = update_position(game_state, move)
-        check_game_completion(updated_game_state)
+        check_game_completion(updated_game_state, winning_spot)
 
       true ->
         {:error, "Unexpected error", game_state}
     end
   end
 
-  defp check_game_completion(game_state) do
-    if is_game_finished?(game_state) do
+  defp check_game_completion(game_state, winning_spot) do
+    if is_game_finished?(game_state, winning_spot) do
       {:ok, "Game finished", game_state}
     else
       {:ok, "Move processed", game_state}
@@ -85,6 +85,49 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
 
   def value_map() do
     %{H: 1, G: 2, F: 3, E: 4, D: 5, C: 6}
+  end
+
+  def columns do
+    [:H, :G, :F, :E, :D, :C]
+  end
+
+  def rows do
+    [1, 2, 3]
+  end
+
+  def playable_positions do
+    for row <- rows(),
+        col <- columns(),
+        get_in(set_board(), [row, col]) != "x" do
+      position_string(row, col)
+    end
+  end
+
+  def position_string(row, col) when is_atom(col) do
+    "#{Atom.to_string(col) |> String.downcase()}#{row}"
+  end
+
+  def normalize_game_state(game_state) do
+    Map.new(game_state, fn {row, cols} ->
+      normalized_row =
+        case row do
+          row when is_integer(row) -> row
+          row when is_binary(row) -> String.to_integer(row)
+        end
+
+      normalized_cols =
+        Map.new(cols, fn {col, value} ->
+          normalized_col =
+            case col do
+              col when is_atom(col) -> col
+              col when is_binary(col) -> String.to_atom(col)
+            end
+
+          {normalized_col, value}
+        end)
+
+      {normalized_row, normalized_cols}
+    end)
   end
 
   @doc """
@@ -173,6 +216,8 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
       row_array
       |> hd()
       |> String.to_integer()
+
+    game_state = normalize_game_state(game_state)
 
     game_state[formatted_row][formatted_column]
   end
@@ -305,10 +350,12 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
       from_col == to_col ->
         # moving along column: vary rows by step
         steps = abs(to_row - from_row) - 1
+
         if steps <= 0 do
           true
         else
           step = if to_row > from_row, do: 1, else: -1
+
           Enum.all?(1..steps, fn i ->
             r = from_row + i * step
             pos = "#{Atom.to_string(from_col) |> String.downcase()}#{r}"
@@ -321,10 +368,12 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
         from_c_i = cols[from_col]
         to_c_i = cols[to_col]
         steps = abs(to_c_i - from_c_i) - 1
+
         if steps <= 0 do
           true
         else
           step = if to_c_i > from_c_i, do: 1, else: -1
+
           Enum.all?(1..steps, fn i ->
             ci = from_c_i + i * step
             col_atom = Enum.find(cols, fn {_k, v} -> v == ci end) |> elem(0)
@@ -350,11 +399,13 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
     to_c_i = cols[to_col]
 
     steps = abs(to_c_i - from_c_i) - 1
+
     if steps <= 0 do
       true
     else
       step_c = if to_c_i > from_c_i, do: 1, else: -1
       step_r = if to_row > from_row, do: 1, else: -1
+
       Enum.all?(1..steps, fn s ->
         ci = from_c_i + s * step_c
         ri = from_row + s * step_r
