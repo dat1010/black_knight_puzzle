@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - dev
+  pull_request:
   workflow_dispatch:
 
 env:
@@ -13,9 +15,8 @@ jobs:
   deploy:
     name: Deploy app
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     concurrency:
-      group: production-deploy
+      group: deploy-${{ github.event_name }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
