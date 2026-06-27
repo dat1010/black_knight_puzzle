@@ -1,130 +1,223 @@
-import { Chess } from 'chess.js'
-import { Chessground } from 'chessground'
+const columns = ['H', 'G', 'F', 'E', 'D', 'C']
+
+const columnIndex = (col) => columns.indexOf(col)
+
+const cellValue = (cell) => cell?.dataset.val ?? ''
+
+const isOpenCell = (cell) => cellValue(cell) === '0'
+
+const isBlockedCell = (cell) => cellValue(cell) === 'x'
+
+const isPieceCell = (cell) => cell && !isBlockedCell(cell) && !isOpenCell(cell)
+
+const positionFor = (cell) => ({
+  row: Number(cell.dataset.row),
+  col: cell.dataset.col,
+  val: cellValue(cell)
+})
+
+const pathIsClear = (board, from, to, stepCol, stepRow) => {
+  let col = columnIndex(from.col) + stepCol
+  let row = from.row + stepRow
+
+  while (col !== columnIndex(to.col) || row !== to.row) {
+    const between = board.querySelector(
+      `td[data-row="${row}"][data-col="${columns[col]}"]`
+    )
+
+    if (!between || !isOpenCell(between)) return false
+
+    col += stepCol
+    row += stepRow
+  }
+
+  return true
+}
+
+const isLegalDestination = (board, fromCell, toCell) => {
+  if (!fromCell || !toCell || fromCell === toCell || !isOpenCell(toCell)) return false
+
+  const from = positionFor(fromCell)
+  const to = positionFor(toCell)
+  const deltaCol = columnIndex(to.col) - columnIndex(from.col)
+  const deltaRow = to.row - from.row
+  const absCol = Math.abs(deltaCol)
+  const absRow = Math.abs(deltaRow)
+
+  switch (from.val) {
+    case 'P':
+    case 'K':
+      return (absCol === 2 && absRow === 1) || (absCol === 1 && absRow === 2)
+    case 'B':
+      return (
+        absCol === absRow &&
+        pathIsClear(board, from, to, Math.sign(deltaCol), Math.sign(deltaRow))
+      )
+    case 'R':
+      if (absCol !== 0 && absRow !== 0) return false
+
+      return pathIsClear(
+        board,
+        from,
+        to,
+        Math.sign(deltaCol),
+        Math.sign(deltaRow)
+      )
+    default:
+      return false
+  }
+}
 
 const ChessHook = {
   mounted() {
-    // Initialize chess.js for move validation
-    this.chess = new Chess()
-    this.chess.clear()
+    this.selectedCell = null
+    this.hoveredCell = null
+    this.dragging = false
+    this.pointerStart = null
 
-    // Create a 3x6 board config for Chessground
-    const config = {
-      fen: '8/8/8/8/8/8 w - - 0 1', // empty board
-      coordinates: false, // hide a-h, 1-8 labels
-      viewOnly: false,
-      movable: {
-        free: false, // require valid moves
-        color: 'both',
-        dests: new Map(), // legal move destinations
-        showDests: true, // show dots on valid destinations
-      },
-      draggable: {
-        enabled: true,
-        showGhost: true,
-      },
-      events: {
-        move: this.onMove.bind(this),
-      },
-      dimensions: {
-        width: 6,
-        height: 3,
+    this.onPointerDown = (event) => {
+      const cell = event.target.closest('td[data-row][data-col]')
+      if (!cell) return
+
+      if (this.selectedCell && cell !== this.selectedCell) {
+        this.tryMoveTo(cell)
+        return
       }
+
+      if (!isPieceCell(cell)) {
+        this.clearSelection()
+        return
+      }
+
+      event.preventDefault()
+      this.selectCell(cell)
+      this.dragging = true
+      this.pointerStart = { x: event.clientX, y: event.clientY }
+      this.el.setPointerCapture?.(event.pointerId)
     }
 
-    // Mount Chessground
-    this.ground = Chessground(this.el, config)
-    
-    // Set up initial position from LiveView state
-    this.syncBoardFromLiveView()
+    this.onPointerMove = (event) => {
+      if (!this.dragging || !this.selectedCell) return
+
+      const cell = this.cellFromPoint(event.clientX, event.clientY)
+      this.setHoveredCell(cell)
+    }
+
+    this.onPointerUp = (event) => {
+      if (!this.dragging) return
+
+      this.dragging = false
+      this.el.releasePointerCapture?.(event.pointerId)
+
+      const endCell = this.cellFromPoint(event.clientX, event.clientY)
+      const movedEnough = this.pointerMoved(event)
+      this.pointerStart = null
+
+      if (movedEnough && endCell) this.tryMoveTo(endCell)
+
+      this.setHoveredCell(null)
+    }
+
+    this.onPointerCancel = () => {
+      this.dragging = false
+      this.pointerStart = null
+      this.setHoveredCell(null)
+    }
+
+    this.el.addEventListener('pointerdown', this.onPointerDown)
+    this.el.addEventListener('pointermove', this.onPointerMove)
+    this.el.addEventListener('pointerup', this.onPointerUp)
+    this.el.addEventListener('pointercancel', this.onPointerCancel)
   },
 
   updated() {
-    // LiveView updated our assigns; sync the board
-    this.syncBoardFromLiveView()
+    this.clearSelection()
   },
 
-  // Map your game_map to Chessground position
-  syncBoardFromLiveView() {
-    const pieces = {}
-    const gameMap = this.el.dataset.gameMap
-    if (!gameMap) return
+  destroyed() {
+    this.el.removeEventListener('pointerdown', this.onPointerDown)
+    this.el.removeEventListener('pointermove', this.onPointerMove)
+    this.el.removeEventListener('pointerup', this.onPointerUp)
+    this.el.removeEventListener('pointercancel', this.onPointerCancel)
+  },
 
-    // Parse the game map and convert to Chessground format
-    const map = JSON.parse(gameMap)
-    Object.entries(map).forEach(([row, cols]) => {
-      Object.entries(cols).forEach(([col, piece]) => {
-        if (piece === 0 || piece === 'x') return
-        const square = this.toSquare(col, row)
-        pieces[square] = this.toPiece(piece)
-      })
+  cellFromPoint(x, y) {
+    return document.elementFromPoint(x, y)?.closest('td[data-row][data-col]')
+  },
+
+  pointerMoved(event) {
+    if (!this.pointerStart) return false
+
+    const deltaX = Math.abs(event.clientX - this.pointerStart.x)
+    const deltaY = Math.abs(event.clientY - this.pointerStart.y)
+
+    return deltaX > 6 || deltaY > 6
+  },
+
+  selectCell(cell) {
+    this.clearSelection()
+    this.selectedCell = cell
+    cell.classList.add('selected')
+    this.highlightLegalMoves()
+  },
+
+  clearSelection() {
+    this.selectedCell?.classList.remove('selected')
+    this.selectedCell = null
+    this.clearLegalMoves()
+    this.setHoveredCell(null)
+  },
+
+  highlightLegalMoves() {
+    this.clearLegalMoves()
+
+    this.el.querySelectorAll('td[data-row][data-col]').forEach((cell) => {
+      if (isLegalDestination(this.el, this.selectedCell, cell)) {
+        cell.classList.add('legal-move')
+      }
     })
-
-    // Update Chessground
-    this.ground.set({ pieces })
-    this.updateLegalMoves()
   },
 
-  // Convert your piece notation to Chessground's
-  toPiece(value) {
-    switch(value) {
-      case 'P': return { role: 'knight', color: 'black' }
-      case 'K': return { role: 'knight', color: 'white' }
-      case 'B': return { role: 'bishop', color: 'white' }
-      case 'R': return { role: 'rook', color: 'white' }
-      default: return null
+  clearLegalMoves() {
+    this.el.querySelectorAll('td.legal-move').forEach((cell) => {
+      cell.classList.remove('legal-move')
+    })
+  },
+
+  setHoveredCell(cell) {
+    this.hoveredCell?.classList.remove('drop-hover', 'drop-invalid')
+    this.hoveredCell = null
+
+    if (!cell || cell === this.selectedCell) return
+
+    this.hoveredCell = cell
+    cell.classList.add(
+      isLegalDestination(this.el, this.selectedCell, cell) ? 'drop-hover' : 'drop-invalid'
+    )
+  },
+
+  tryMoveTo(cell) {
+    if (!this.selectedCell) return
+
+    if (!isLegalDestination(this.el, this.selectedCell, cell)) {
+      if (isPieceCell(cell)) {
+        this.selectCell(cell)
+      }
+
+      return
     }
-  },
 
-  // Map your H1-C3 notation to Chessground's a1-h8
-  toSquare(col, row) {
-    const colMap = { H: 'a', G: 'b', F: 'c', E: 'd', D: 'e', C: 'f' }
-    return `${colMap[col]}${row}`
-  },
+    const from = positionFor(this.selectedCell)
+    const to = positionFor(cell)
+    this.clearSelection()
 
-  // Map Chessground's a1-h8 back to your H1-C3
-  fromSquare(square) {
-    const [col, row] = square.split('')
-    const colMap = { a: 'H', b: 'G', c: 'F', d: 'E', e: 'D', f: 'C' }
-    return { col: colMap[col], row }
-  },
-
-  // When Chessground reports a move
-  onMove(orig, dest) {
-    const from = this.fromSquare(orig)
-    const to = this.fromSquare(dest)
-    
-    // Get the piece type that moved
-    const pieces = this.ground.state.pieces
-    const piece = pieces.get(orig)
-    if (!piece) return
-
-    // Convert to your move format (e.g., "Ph1h3")
-    const pieceMap = {
-      knight: { black: 'P', white: 'K' },
-      bishop: { white: 'B' },
-      rook: { white: 'R' }
-    }
-    const pieceChar = pieceMap[piece.role][piece.color]
-    const move = `${pieceChar}${from.col.toLowerCase()}${from.row}${to.col.toLowerCase()}${to.row}`
-
-    // Send to LiveView
-    this.pushEvent("select_position", { 
-      row: from.row, 
-      col: from.col, 
-      val: pieceChar 
+    this.pushEvent('move_piece', {
+      from_row: String(from.row),
+      from_col: from.col,
+      val: from.val,
+      to_row: String(to.row),
+      to_col: to.col
     })
-    this.pushEvent("select_position", { 
-      row: to.row, 
-      col: to.col, 
-      val: '0'  // destination must be empty
-    })
-  },
-
-  // Update legal moves in Chessground
-  updateLegalMoves() {
-    const dests = new Map()
-    // TODO: Use chess.js to compute legal moves for the selected piece
-    this.ground.set({ movable: { dests } })
   }
 }
 

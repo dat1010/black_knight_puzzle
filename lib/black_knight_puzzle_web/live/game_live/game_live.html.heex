@@ -1,35 +1,59 @@
-<div class="is-flex is-justify-content-center is-align-items-center">
-  <div>
-    <%= unless @current_user == nil do %>
-      <button class="button is-primary is-medium" phx-click="new_game">New Game</button>
-    <% end %>
-
-    <div class="container">
-      <div class="columns">
-        <div class="column">
-          <p class="is-size-4">Move: <%= @move || "" %></p>
-        </div>
-        <div class="column">
-          <p class="is-size-4">Count: <%= @move_count || "" %></p>
-        </div>
-      </div>
-
-      <div 
-        id="chess-board" 
-        phx-hook="ChessHook"
-        data-game-map={Jason.encode!(@game_map)}
-        class="black-3x6"
-      ></div>
+<div class="container">
+  <div class="columns">
+    <div class="column">
+      <p class="is-size-4">Move: <%= @move || "" %></p>
     </div>
-    <div class="container">
-      <div class="notification is-light">
-        <p class="subtitle is-5">
-          Move the black knight to the bottom right black square using standard chess moves.
-        </p>
-        <p class="subtitle is-5">
-          Click on a piece to select it, then click on the destination square to move it.
-        </p>
-      </div>
+    <div class="column">
+      <p class="is-size-4">Count: <%= @move_count || "" %></p>
+    </div>
+  </div>
+
+  <div id="chess-board" phx-hook="ChessHook">
+    <table>
+      <tr>
+        <th></th>
+        <th>H</th>
+        <th>G</th>
+        <th>F</th>
+        <th>E</th>
+        <th>D</th>
+        <th>C</th>
+      </tr>
+      <%= for row <- 1..3 do %>
+        <tr>
+          <th><%= row %></th>
+          <%= for col <- ["H", "G", "F", "E", "D", "C"] do %>
+            <% piece = @game_map[row][String.to_atom(col)]
+            is_dark = rem(row + String.to_integer(Base.encode16(col), 16), 2) == 0 %>
+            <td
+              class={is_dark && "dark"}
+              data-row={row}
+              data-col={col}
+              data-val={piece}
+              aria-label={"#{piece} on #{col}#{row}"}
+            >
+              <%= if piece == "x" do %>
+                <div class="blocked"></div>
+              <% else %>
+                <%= if is_binary(piece) do %>
+                  <img src="/images/#{piece}.png" alt={piece} />
+                <% end %>
+              <% end %>
+            </td>
+          <% end %>
+        </tr>
+      <% end %>
+    </table>
+  </div>
+
+  <div class="container">
+    <div class="notification is-light">
+      <p class="subtitle is-5">
+        Move the black knight to the bottom right black square using standard chess moves.
+      </p>
+      <p class="subtitle is-5">
+        Click on a piece to select it, then click on the destination square to move it.
+      </p>
     </div>
   </div>
 </div>

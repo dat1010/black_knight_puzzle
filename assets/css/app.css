@@ -1,4 +1,5 @@
 @import "bulma/css/bulma.css";
+@import "./chess.css";
 
 /* Custom CSS to override conflicting styles */
 .notification.is-light {
