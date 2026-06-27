@@ -1,241 +1,221 @@
-import { Chess } from 'chess.js'
+const columns = ['H', 'G', 'F', 'E', 'D', 'C']
 
-// Non-invasive validation hook: only blocks the second click if chess.js deems the move illegal.
-// Otherwise it lets the existing LiveView click flow run unchanged.
+const columnIndex = (col) => columns.indexOf(col)
+
+const cellValue = (cell) => cell?.dataset.val ?? ''
+
+const isOpenCell = (cell) => cellValue(cell) === '0'
+
+const isBlockedCell = (cell) => cellValue(cell) === 'x'
+
+const isPieceCell = (cell) => cell && !isBlockedCell(cell) && !isOpenCell(cell)
+
+const positionFor = (cell) => ({
+  row: Number(cell.dataset.row),
+  col: cell.dataset.col,
+  val: cellValue(cell)
+})
+
+const pathIsClear = (board, from, to, stepCol, stepRow) => {
+  let col = columnIndex(from.col) + stepCol
+  let row = from.row + stepRow
+
+  while (col !== columnIndex(to.col) || row !== to.row) {
+    const between = board.querySelector(
+      `td[data-row="${row}"][data-col="${columns[col]}"]`
+    )
+
+    if (!between || !isOpenCell(between)) return false
+
+    col += stepCol
+    row += stepRow
+  }
+
+  return true
+}
+
+const isLegalDestination = (board, fromCell, toCell) => {
+  if (!fromCell || !toCell || fromCell === toCell || !isOpenCell(toCell)) return false
+
+  const from = positionFor(fromCell)
+  const to = positionFor(toCell)
+  const deltaCol = columnIndex(to.col) - columnIndex(from.col)
+  const deltaRow = to.row - from.row
+  const absCol = Math.abs(deltaCol)
+  const absRow = Math.abs(deltaRow)
+
+  switch (from.val) {
+    case 'P':
+    case 'K':
+      return (absCol === 2 && absRow === 1) || (absCol === 1 && absRow === 2)
+    case 'B':
+      return (
+        absCol === absRow &&
+        pathIsClear(board, from, to, Math.sign(deltaCol), Math.sign(deltaRow))
+      )
+    case 'R':
+      if (absCol !== 0 && absRow !== 0) return false
+
+      return pathIsClear(
+        board,
+        from,
+        to,
+        Math.sign(deltaCol),
+        Math.sign(deltaRow)
+      )
+    default:
+      return false
+  }
+}
+
 const ChessHook = {
   mounted() {
-    this.start = null
-    this.boardTable = this.el.querySelector('table')
-    // Optional visual cue that hook is active
-    // this.el.style.outline = '2px solid #f39c12'
+    this.selectedCell = null
+    this.hoveredCell = null
+    this.dragging = false
+    this.pointerStart = null
 
-    // Click-to-move validator (non-invasive)
-    this.onClick = (evt) => {
-      const td = evt.target.closest('td')
-      if (!td) return
-      // Phoenix sets these as attributes; reuse them instead of adding new data-*
-      const row = td.getAttribute('phx-value-row')
-      const col = td.getAttribute('phx-value-col')
-      const val = td.getAttribute('phx-value-val')
-      if (!row || !col) return
+    this.onPointerDown = (event) => {
+      const cell = event.target.closest('td[data-row][data-col]')
+      if (!cell) return
 
-      if (!this.start) {
-        // First click: remember and allow LiveView to process as usual
-        this.start = { row, col, val }
+      if (this.selectedCell && cell !== this.selectedCell) {
+        this.tryMoveTo(cell)
         return
       }
 
-      // Second click: validate with chess.js before allowing server to handle it
-      const finish = { row, col, val }
-      const isValid = this.validateWithChess(this.start, finish)
-      if (!isValid) {
-        // Block the invalid second click so server does not process it
-        evt.preventDefault()
-        evt.stopPropagation()
-        // Brief highlight to signal invalid
-        td.animate([{ backgroundColor: '#ffdddd' }, { backgroundColor: '' }], { duration: 300 })
-      }
-      this.start = null
-    }
-
-    // Disable native image drag to avoid macOS “save image” behavior
-    this.onNativeDragStartBlock = (evt) => { evt.preventDefault() }
-
-    // Drag-and-drop support (pointer-driven, not HTML5 DnD)
-    this.drag = null
-    this.hoverTd = null
-    this.onPointerDown = (evt) => {
-      evt.preventDefault()
-      const td = evt.target.closest('td')
-      if (!td) return
-      const val = td.getAttribute('phx-value-val')
-      if (!val || val === '0' || val === 'x') return
-      const row = td.getAttribute('phx-value-row')
-      const col = td.getAttribute('phx-value-col')
-      const img = td.querySelector('img')
-      if (!row || !col || !img) return
-      // start drag
-      const rect = img.getBoundingClientRect()
-      const ghost = img.cloneNode(true)
-      // Ensure the ghost image keeps the same on-screen size as the original
-      ghost.style.position = 'fixed'
-      ghost.style.width = `${rect.width}px`
-      ghost.style.height = `${rect.height}px`
-      ghost.style.maxWidth = 'none'
-      ghost.style.maxHeight = 'none'
-      ghost.style.left = `${evt.clientX - (rect.width / 2)}px`
-      ghost.style.top = `${evt.clientY - (rect.height / 2)}px`
-      ghost.style.pointerEvents = 'none'
-      ghost.style.opacity = '0.95'
-      ghost.style.zIndex = '9999'
-      ghost.style.objectFit = 'contain'
-      ghost.style.border = 'none'
-      document.body.appendChild(ghost)
-      this.drag = {
-        start: { row, col, val },
-        ghost,
-        offsetX: rect.width / 2,
-        offsetY: rect.height / 2
-      }
-      // block native drag on the image
-      img.addEventListener('dragstart', this.onNativeDragStartBlock, { once: true })
-      window.addEventListener('pointermove', this.onPointerMove)
-      window.addEventListener('pointerup', this.onPointerUp, { once: true })
-      window.addEventListener('pointercancel', this.onPointerCancel, { once: true })
-    }
-
-    this.onPointerMove = (evt) => {
-      if (!this.drag) return
-      const { ghost, offsetX, offsetY } = this.drag
-      ghost.style.left = `${evt.clientX - offsetX}px`
-      ghost.style.top = `${evt.clientY - offsetY}px`
-
-      // highlight hovered cell
-      const td = document.elementFromPoint(evt.clientX, evt.clientY)?.closest('td')
-      if (td !== this.hoverTd) {
-        if (this.hoverTd) this.hoverTd.classList.remove('drop-hover')
-        if (td) td.classList.add('drop-hover')
-        this.hoverTd = td || null
-      }
-    }
-
-    this.onPointerUp = (evt) => {
-      if (!this.drag) return
-      const { start, ghost } = this.drag
-      const td = document.elementFromPoint(evt.clientX, evt.clientY)?.closest('td')
-      if (!td) {
-        ghost.remove()
-        if (this.hoverTd) this.hoverTd.classList.remove('drop-hover')
-        this.hoverTd = null
-        this.drag = null
+      if (!isPieceCell(cell)) {
+        this.clearSelection()
         return
       }
-      const row = td.getAttribute('phx-value-row')
-      const col = td.getAttribute('phx-value-col')
-      const val = td.getAttribute('phx-value-val')
-      const finish = { row, col, val }
-      const isValid = this.validateWithChess(start, finish)
-      if (!isValid) {
-        td.animate([{ backgroundColor: '#ffdddd' }, { backgroundColor: '' }], { duration: 300 })
-      }
-      // Always simulate the existing two-click flow so the server can display
-      // the same "Illegal move" feedback on invalid drops
-      this.pushEvent('select_position', { row: start.row, col: start.col, val: start.val })
-      this.pushEvent('select_position', { row, col, val })
-      ghost.remove()
-      if (this.hoverTd) this.hoverTd.classList.remove('drop-hover')
-      this.hoverTd = null
-      this.drag = null
+
+      event.preventDefault()
+      this.selectCell(cell)
+      this.dragging = true
+      this.pointerStart = { x: event.clientX, y: event.clientY }
+      this.el.setPointerCapture?.(event.pointerId)
+    }
+
+    this.onPointerMove = (event) => {
+      if (!this.dragging || !this.selectedCell) return
+
+      const cell = this.cellFromPoint(event.clientX, event.clientY)
+      this.setHoveredCell(cell)
+    }
+
+    this.onPointerUp = (event) => {
+      if (!this.dragging) return
+
+      this.dragging = false
+      this.el.releasePointerCapture?.(event.pointerId)
+
+      const endCell = this.cellFromPoint(event.clientX, event.clientY)
+      const movedEnough = this.pointerMoved(event)
+      this.pointerStart = null
+
+      if (movedEnough && endCell) this.tryMoveTo(endCell)
+
+      this.setHoveredCell(null)
     }
 
     this.onPointerCancel = () => {
-      if (!this.drag) return
-      this.drag.ghost.remove()
-      if (this.hoverTd) this.hoverTd.classList.remove('drop-hover')
-      this.hoverTd = null
-      this.drag = null
+      this.dragging = false
+      this.pointerStart = null
+      this.setHoveredCell(null)
     }
 
-    this.el.addEventListener('click', this.onClick, true)
-    this.attachListeners()
-    this.refreshDraggablePieces()
+    this.el.addEventListener('pointerdown', this.onPointerDown)
+    this.el.addEventListener('pointermove', this.onPointerMove)
+    this.el.addEventListener('pointerup', this.onPointerUp)
+    this.el.addEventListener('pointercancel', this.onPointerCancel)
+  },
+
+  updated() {
+    this.clearSelection()
   },
 
   destroyed() {
-    if (this.onClick) this.el.removeEventListener('click', this.onClick, true)
-    this.detachListeners()
+    this.el.removeEventListener('pointerdown', this.onPointerDown)
+    this.el.removeEventListener('pointermove', this.onPointerMove)
+    this.el.removeEventListener('pointerup', this.onPointerUp)
+    this.el.removeEventListener('pointercancel', this.onPointerCancel)
   },
 
-  validateWithChess(start, finish) {
-    // Destination must be empty and not blocked (your server enforces this too)
-    if (!finish || finish.val === 'x' || finish.val !== '0') return false
+  cellFromPoint(x, y) {
+    return document.elementFromPoint(x, y)?.closest('td[data-row][data-col]')
+  },
 
-    // Build a chess.js board reflecting the current grid
-    const chess = new Chess()
-    chess.clear()
+  pointerMoved(event) {
+    if (!this.pointerStart) return false
 
-    const tds = this.boardTable.querySelectorAll('tbody td')
-    tds.forEach((cell) => {
-      const c = cell.getAttribute('phx-value-col')
-      const r = cell.getAttribute('phx-value-row')
-      const v = cell.getAttribute('phx-value-val')
-      if (!c || !r || !v) return
+    const deltaX = Math.abs(event.clientX - this.pointerStart.x)
+    const deltaY = Math.abs(event.clientY - this.pointerStart.y)
 
-      const square = this.toSquare(c, r)
-      switch (v) {
-        case 'P': // player black knight
-          chess.put({ type: 'n', color: 'b' }, square)
-          break
-        case 'K': // white knight
-          chess.put({ type: 'n', color: 'w' }, square)
-          break
-        case 'B': // white bishop
-          chess.put({ type: 'b', color: 'w' }, square)
-          break
-        case 'R': // white rook
-          chess.put({ type: 'r', color: 'w' }, square)
-          break
-        case 'x': // blocked cell: add an unmovable blocker (friendly to both movers)
-          // Use a black pawn as a rigid blocker; knights can jump, others cannot pass/land
-          chess.put({ type: 'p', color: 'b' }, square)
-          break
-        default:
-          // '0' empty
-          break
+    return deltaX > 6 || deltaY > 6
+  },
+
+  selectCell(cell) {
+    this.clearSelection()
+    this.selectedCell = cell
+    cell.classList.add('selected')
+    this.highlightLegalMoves()
+  },
+
+  clearSelection() {
+    this.selectedCell?.classList.remove('selected')
+    this.selectedCell = null
+    this.clearLegalMoves()
+    this.setHoveredCell(null)
+  },
+
+  highlightLegalMoves() {
+    this.clearLegalMoves()
+
+    this.el.querySelectorAll('td[data-row][data-col]').forEach((cell) => {
+      if (isLegalDestination(this.el, this.selectedCell, cell)) {
+        cell.classList.add('legal-move')
       }
     })
-
-    const from = this.toSquare(start.col, start.row)
-    const to = this.toSquare(finish.col, finish.row)
-
-    // chess.js will reject sliding through pieces, which fixes the rook bug
-    const legal = chess.moves({ square: from, verbose: true }).some((m) => m.to === to)
-    return legal
   },
 
-  toSquare(col, row) {
-    return `${String(col).toLowerCase()}${row}`
-  }
-  ,
-  updated() {
-    // LiveView re-render may replace DOM; re-bind listeners and re-enable draggables
-    this.detachListeners()
-    this.boardTable = this.el.querySelector('table')
-    this.attachListeners()
-    this.refreshDraggablePieces()
-  },
-
-  refreshDraggablePieces() {
-    const tds = this.boardTable?.querySelectorAll('tbody td') || []
-    tds.forEach((td) => {
-      const val = td.getAttribute('phx-value-val')
-      const img = td.querySelector('img')
-      if (!img) return
-      const isPiece = val && val !== '0' && val !== 'x'
-      // Make both the img and the td draggable to avoid browser “download image” default
-      if (isPiece) {
-        // disable native dnd; we use pointer-driven drag
-        img.setAttribute('draggable', 'false')
-        td.setAttribute('draggable', 'false')
-        img.style.cursor = 'grab'
-      } else {
-        img.setAttribute('draggable', 'false')
-        td.setAttribute('draggable', 'false')
-        img.style.cursor = 'default'
-      }
+  clearLegalMoves() {
+    this.el.querySelectorAll('td.legal-move').forEach((cell) => {
+      cell.classList.remove('legal-move')
     })
-  }
-  ,
-  attachListeners() {
-    if (!this.boardTable) return
-    // Pointer-driven drag only
-    this.boardTable.addEventListener('pointerdown', this.onPointerDown, true)
   },
-  detachListeners() {
-    if (!this.boardTable) return
-    this.boardTable.removeEventListener('pointerdown', this.onPointerDown, true)
+
+  setHoveredCell(cell) {
+    this.hoveredCell?.classList.remove('drop-hover', 'drop-invalid')
+    this.hoveredCell = null
+
+    if (!cell || cell === this.selectedCell) return
+
+    this.hoveredCell = cell
+    cell.classList.add(
+      isLegalDestination(this.el, this.selectedCell, cell) ? 'drop-hover' : 'drop-invalid'
+    )
+  },
+
+  tryMoveTo(cell) {
+    if (!this.selectedCell) return
+
+    if (!isLegalDestination(this.el, this.selectedCell, cell)) {
+      if (isPieceCell(cell)) this.selectCell(cell)
+      return
+    }
+
+    const from = positionFor(this.selectedCell)
+    const to = positionFor(cell)
+    this.clearSelection()
+
+    this.pushEvent('move_piece', {
+      from_row: String(from.row),
+      from_col: from.col,
+      val: from.val,
+      to_row: String(to.row),
+      to_col: to.col
+    })
   }
 }
 
 export default ChessHook
-
