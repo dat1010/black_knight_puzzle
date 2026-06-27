@@ -1,6 +1,8 @@
 defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   use BlackKnightPuzzle.DataCase
   alias BlackKnightPuzzle.Game.BlackKnight
+  alias BlackKnightPuzzle.Game.DailyPuzzleGenerator
+  alias BlackKnightPuzzle.Game.Solver
 
   test "set_board/0 returns new board state" do
     board_start_state = BlackKnight.set_board()
@@ -151,5 +153,54 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
     legal? = BlackKnight.is_move_legal?(board_state, "Ke3g2")
 
     assert legal?
+  end
+
+  test "process_move/3 can finish at a custom goal" do
+    board_state =
+      BlackKnight.set_board()
+      |> put_in([1, :H], "K")
+      |> put_in([2, :E], "P")
+
+    assert {:ok, "Game finished", updated_state} =
+             BlackKnight.process_move(board_state, "Pe2c3", "c3")
+
+    assert BlackKnight.is_game_finished?(updated_state, "c3")
+  end
+
+  test "solver finds the default board solution" do
+    assert {:ok, moves} = Solver.solve(BlackKnight.set_board(), "c3", max_depth: 100)
+    assert length(moves) == 18
+  end
+
+  test "solver returns a shortest one-move solution" do
+    board_state =
+      BlackKnight.set_board()
+      |> put_in([1, :H], "K")
+      |> put_in([2, :E], "P")
+
+    assert {:ok, ["Pe2c3"]} = Solver.solve(board_state, "c3", max_depth: 5)
+  end
+
+  test "solver returns unsolvable when no solution exists within the depth limit" do
+    assert :unsolvable = Solver.solve(BlackKnight.set_board(), "c3", max_depth: 1)
+  end
+
+  test "daily puzzle generator creates a stable solvable puzzle for a date" do
+    date = ~D[2026-06-27]
+    opts = [min_solution_length: 1, max_solution_length: 40, max_attempts: 10]
+
+    puzzle = DailyPuzzleGenerator.generate(date, opts)
+    same_puzzle = DailyPuzzleGenerator.generate(date, opts)
+
+    assert puzzle.puzzle_date == date
+    assert puzzle.solvable
+    assert puzzle.solution_length == length(puzzle.solution_moves)
+    assert puzzle.start_state == same_puzzle.start_state
+    assert puzzle.goal_position == same_puzzle.goal_position
+
+    assert {:ok, solution_moves} =
+             Solver.solve(puzzle.start_state, puzzle.goal_position, max_depth: 40)
+
+    assert solution_moves == puzzle.solution_moves
   end
 end

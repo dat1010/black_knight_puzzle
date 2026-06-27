@@ -7,8 +7,11 @@ defmodule BlackKnightPuzzle.Games do
   alias BlackKnightPuzzle.Repo
 
   alias BlackKnightPuzzle.Games.Game
+  alias BlackKnightPuzzle.Games.DailyPuzzle
+  alias BlackKnightPuzzle.Games.DailyPuzzleScore
   alias BlackKnightPuzzle.Games.UserGame
   alias BlackKnightPuzzle.Games.UserGameMove
+  alias BlackKnightPuzzle.Game.DailyPuzzleGenerator
 
   # database getters
 
@@ -70,6 +73,70 @@ defmodule BlackKnightPuzzle.Games do
       preload: [:user_game_moves]
     )
     |> Repo.all()
+  end
+
+  def get_daily_puzzle(date) do
+    Repo.get_by(DailyPuzzle, puzzle_date: date)
+  end
+
+  def get_or_create_daily_puzzle(date \\ Date.utc_today()) do
+    case get_daily_puzzle(date) do
+      nil -> create_daily_puzzle_for_date(date)
+      daily_puzzle -> daily_puzzle
+    end
+  end
+
+  def create_daily_puzzle_for_date(date) do
+    attrs = DailyPuzzleGenerator.generate(date, daily_puzzle_generator_opts())
+
+    %DailyPuzzle{}
+    |> DailyPuzzle.changeset(attrs)
+    |> Repo.insert()
+    |> case do
+      {:ok, daily_puzzle} ->
+        daily_puzzle
+
+      {:error, changeset} ->
+        if Keyword.has_key?(changeset.errors, :puzzle_date) do
+          get_daily_puzzle(date)
+        else
+          raise Ecto.InvalidChangesetError, action: :insert, changeset: changeset
+        end
+    end
+  end
+
+  defp daily_puzzle_generator_opts do
+    Application.get_env(:black_knight_puzzle, :daily_puzzle_generator, [])
+  end
+
+  def save_daily_score(nil, _daily_puzzle, _move_count), do: {:ok, nil}
+
+  def save_daily_score(user, daily_puzzle, move_count) do
+    attrs = %{
+      user_id: user.id,
+      daily_puzzle_id: daily_puzzle.id,
+      move_count: move_count,
+      solved_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    }
+
+    %DailyPuzzleScore{}
+    |> DailyPuzzleScore.changeset(attrs)
+    |> Repo.insert()
+    |> case do
+      {:ok, score} ->
+        {:ok, score}
+
+      {:error, changeset} ->
+        if Keyword.has_key?(changeset.errors, :user_id) do
+          {:ok, get_daily_score(user.id, daily_puzzle.id)}
+        else
+          {:error, changeset}
+        end
+    end
+  end
+
+  def get_daily_score(user_id, daily_puzzle_id) do
+    Repo.get_by(DailyPuzzleScore, user_id: user_id, daily_puzzle_id: daily_puzzle_id)
   end
 
   # database inserts
