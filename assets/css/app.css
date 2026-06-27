@@ -44,10 +44,50 @@
 #chess-board img {
   -webkit-user-drag: none;
   user-drag: none;
+  pointer-events: none;
 }
 
-/* Hover highlight during pointer DnD */
+#chess-board td {
+  position: relative;
+}
+
+#chess-board td[data-val="P"],
+#chess-board td[data-val="K"],
+#chess-board td[data-val="B"],
+#chess-board td[data-val="R"] {
+  cursor: grab;
+}
+
+#chess-board td[data-val="P"]:active,
+#chess-board td[data-val="K"]:active,
+#chess-board td[data-val="B"]:active,
+#chess-board td[data-val="R"]:active {
+  cursor: grabbing;
+}
+
+#chess-board td.selected {
+  box-shadow: inset 0 0 0 4px #ffdd57;
+}
+
+#chess-board td.legal-move::after {
+  content: "";
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(50, 115, 220, 0.65);
+  box-shadow: 0 0 0 5px rgba(50, 115, 220, 0.16);
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
 #chess-board td.drop-hover {
-  outline: 3px solid #3273dc;
-  outline-offset: -3px;
+  outline: 4px solid #3273dc;
+  outline-offset: -4px;
+}
+
+#chess-board td.drop-invalid {
+  outline: 4px solid #ff3860;
+  outline-offset: -4px;
 }

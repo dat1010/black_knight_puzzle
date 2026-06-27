@@ -108,6 +108,91 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
     end
   end
 
+  def handle_event(
+        "move_piece",
+        %{
+          "from_row" => start_row,
+          "from_col" => start_col,
+          "val" => start_val,
+          "to_row" => row,
+          "to_col" => col
+        },
+        socket
+      ) do
+    move = build_move(start_row, start_col, start_val, row, col)
+    process_completed_move(socket, move)
+  end
+
+  defp build_move(start_row, start_col, start_val, row, col) do
+    lower = String.downcase("#{start_col}#{start_row}#{col}#{row}")
+    "#{start_val}#{lower}"
+  end
+
+  defp process_completed_move(socket, move) do
+    case BlackKnight.process_move(socket.assigns.game_map, move) do
+      {:ok, "Game finished", new_game_map} ->
+        Games.create_user_game_move(%{
+          "user_game_id" => socket.assigns.user_game_id,
+          "move" => move
+        })
+
+        Games.update_user_game(socket.assigns.user_game_id, %{
+          "current_state" => new_game_map,
+          "won" => true
+        })
+
+        socket =
+          socket
+          |> assign(
+            selected_start: nil,
+            selected_end: nil,
+            move: move,
+            move_count: socket.assigns.move_count + 1,
+            game_map: new_game_map,
+            error: ""
+          )
+          |> put_flash(:info, "Congratulations! You've won the game!")
+
+        {:noreply, socket}
+
+      {:ok, _, new_game_map} ->
+        Games.create_user_game_move(%{
+          "user_game_id" => socket.assigns.user_game_id,
+          "move" => move
+        })
+
+        Games.update_user_game(socket.assigns.user_game_id, %{
+          "current_state" => new_game_map,
+          "won" => true
+        })
+
+        {:noreply,
+         assign(socket,
+           selected_start: nil,
+           selected_end: nil,
+           move: move,
+           move_count: socket.assigns.move_count + 1,
+           game_map: new_game_map,
+           error: ""
+         )}
+
+      {:error, reason, game_map} ->
+        socket =
+          socket
+          |> assign(
+            selected_start: nil,
+            selected_end: nil,
+            move: nil,
+            move_count: socket.assigns.move_count,
+            game_map: game_map,
+            error: reason
+          )
+          |> LiveToast.put_toast(:error, "Illegal move.")
+
+        {:noreply, socket}
+    end
+  end
+
   defp chess_color(row_index, col_atom, value) do
     col_index = BlackKnight.value_map()[col_atom]
 
