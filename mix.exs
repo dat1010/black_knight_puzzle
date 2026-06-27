@@ -3,7 +3,7 @@ defmodule BlackKnightPuzzle.MixProject do
 
   def project do
     [
-      app: :black_knight_puzzle,
+      app: :black_knight,
       version: "0.1.0",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -80,10 +80,10 @@ defmodule BlackKnightPuzzle.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["tailwind black_knight_puzzle", "esbuild black_knight_puzzle"],
+      "assets.build": ["tailwind black_knight", "esbuild black_knight"],
       "assets.deploy": [
-        "tailwind black_knight_puzzle --minify",
-        "esbuild black_knight_puzzle --minify",
+        "tailwind black_knight --minify",
+        "esbuild black_knight --minify",
         "phx.digest"
       ]
     ]

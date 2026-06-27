@@ -29,7 +29,7 @@ defmodule BlackKnightPuzzleWeb.Router do
   # end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
-  if Application.compile_env(:black_knight_puzzle, :dev_routes) do
+  if Application.compile_env(:black_knight, :dev_routes) do
     # If you want to use the LiveDashboard in production, you should put
     # it behind authentication and allow only admins to access it.
     # If your application does not have an admins-only section yet,

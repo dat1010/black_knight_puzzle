@@ -11,7 +11,7 @@ defmodule BlackKnightPuzzle.Application do
       BlackKnightPuzzleWeb.Telemetry,
       BlackKnightPuzzle.Repo,
       {DNSCluster,
-       query: Application.get_env(:black_knight_puzzle, :dns_cluster_query) || :ignore},
+       query: Application.get_env(:black_knight, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: BlackKnightPuzzle.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: BlackKnightPuzzle.Finch},

@@ -7,6 +7,7 @@ defmodule BlackKnightPuzzleWeb.UserAuthTest do
   import BlackKnightPuzzle.AccountsFixtures
 
   @remember_me_cookie "_black_knight_puzzle_web_user_remember_me"
+  @remember_me_cookie "_black_knight_web_user_remember_me"
 
   setup %{conn: conn} do
     conn =

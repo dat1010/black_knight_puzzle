@@ -20,5 +20,5 @@ defmodule BlackKnightPuzzleWeb.Gettext do
 
   See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
   """
-  use Gettext, otp_app: :black_knight_puzzle
+  use Gettext, otp_app: :black_knight
 end

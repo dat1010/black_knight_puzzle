@@ -7,12 +7,12 @@
 # General application configuration
 import Config
 
-config :black_knight_puzzle,
+config :black_knight,
   ecto_repos: [BlackKnightPuzzle.Repo],
   generators: [timestamp_type: :utc_datetime]
 
 # Configures the endpoint
-config :black_knight_puzzle, BlackKnightPuzzleWeb.Endpoint,
+config :black_knight, BlackKnightPuzzleWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
@@ -31,9 +31,9 @@ config :swoosh, :api_client, Swoosh.ApiClient.Hackney
 #
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
-# config :black_knight_puzzle, BlackKnightPuzzle.Mailer, adapter: Swoosh.Adapters.Local
+# config :black_knight, BlackKnightPuzzle.Mailer, adapter: Swoosh.Adapters.Local
 
-config :black_knight_puzzle, BlackKnightPuzzle.Mailer,
+config :black_knight, BlackKnightPuzzle.Mailer,
   adapter: Swoosh.Adapters.AmazonSES,
   region: "us-east-1",
   access_key: System.get_env("SES_ACCESS_KEY"),
@@ -42,7 +42,7 @@ config :black_knight_puzzle, BlackKnightPuzzle.Mailer,
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.17.11",
-  black_knight_puzzle: [
+  black_knight: [
     args:
       ~w(js/app.js --bundle --target=es2020 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
     cd: Path.expand("../assets", __DIR__),
@@ -52,7 +52,7 @@ config :esbuild,
 # Configure tailwind (the version is required)
 config :tailwind,
   version: "3.4.0",
-  black_knight_puzzle: [
+  black_knight: [
     args: ~w(
       --config=tailwind.config.js
       --input=css/app.css

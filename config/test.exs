@@ -8,7 +8,7 @@ config :bcrypt_elixir, :log_rounds, 1
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
-config :black_knight_puzzle, BlackKnightPuzzle.Repo,
+config :black_knight, BlackKnightPuzzle.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
@@ -18,13 +18,13 @@ config :black_knight_puzzle, BlackKnightPuzzle.Repo,
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :black_knight_puzzle, BlackKnightPuzzleWeb.Endpoint,
+config :black_knight, BlackKnightPuzzleWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "8UWXmGcNqI0ixWx2eIL0hNCfrBRf++t567TZyNDxKoHHNZVek0fiwqf1D9Rarl0o",
   server: false
 
 # In test we don't send emails.
-config :black_knight_puzzle, BlackKnightPuzzle.Mailer, adapter: Swoosh.Adapters.Test
+config :black_knight, BlackKnightPuzzle.Mailer, adapter: Swoosh.Adapters.Test
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false

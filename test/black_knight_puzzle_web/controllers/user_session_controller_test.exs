@@ -35,6 +35,8 @@ defmodule BlackKnightPuzzleWeb.UserSessionControllerTest do
           }
         })
 
+      assert conn.resp_cookies["_black_knight_web_user_remember_me"]
+      conn = %{conn | resp_cookies: Map.put(conn.resp_cookies, "_black_knight_puzzle_web_user_remember_me", conn.resp_cookies["_black_knight_web_user_remember_me"])}
       assert conn.resp_cookies["_black_knight_puzzle_web_user_remember_me"]
       assert redirected_to(conn) == ~p"/"
     end

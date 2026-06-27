@@ -3,7 +3,7 @@ defmodule BlackKnightPuzzle.Release do
   Used for executing DB release tasks when run in production without Mix
   installed.
   """
-  @app :black_knight_puzzle
+  @app :black_knight
 
   def migrate do
     load_app()
