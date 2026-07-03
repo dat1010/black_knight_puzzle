@@ -1,94 +1,76 @@
-<main class="daily-puzzle">
-  <section class="daily-puzzle__header">
-    <div>
-      <p class="daily-puzzle__eyebrow">Daily Black Knight</p>
-      <h1><%= Calendar.strftime(@daily_puzzle.puzzle_date, "%B %d, %Y") %></h1>
-    </div>
+<div class="is-flex is-justify-content-center is-align-items-center">
+  <div>
+    <div class="container">
+      <div class="columns">
+        <div class="column">
+          <p class="is-size-4">Move: <%= @move || "" %></p>
+        </div>
+        <div class="column">
+          <p class="is-size-4">Count: <%= @move_count || "" %></p>
+        </div>
+      </div>
 
-    <div class="daily-puzzle__stats" aria-label="Daily puzzle stats">
-      <div>
-        <span>Moves</span>
-        <strong><%= @move_count %></strong>
-      </div>
-      <div>
-        <span>Goal</span>
-        <strong><%= String.upcase(@goal_position) %></strong>
-      </div>
-      <div>
-        <span>Par</span>
-        <strong><%= @daily_puzzle.solution_length %></strong>
-      </div>
-    </div>
-  </section>
-
-  <section class="daily-puzzle__play">
-    <div id="chess-board" phx-hook="ChessHook">
-      <table class="daily-board">
-        <thead>
-          <tr>
-            <th></th>
-            <%= for col <- ["H", "G", "F", "E", "D", "C"] do %>
-              <th><%= col %></th>
-            <% end %>
-          </tr>
-        </thead>
-        <tbody>
-          <%= for row <- 1..3 do %>
+      <div id="chess-board" phx-hook="ChessHook">
+        <table class="table is-bordered is-striped" style="width: auto;">
+          <thead>
+            <!-- Column headers -->
             <tr>
-              <th><%= row %></th>
-              <%= for col <- ["H", "G", "F", "E", "D", "C"] do %>
-                <% piece = @game_map[row][String.to_atom(col)] %>
-                <% position = "#{String.downcase(col)}#{row}" %>
-                <td
-                  class={[
-                    piece == "x" && "is-blocked",
-                    position == @goal_position && "is-goal"
-                  ]}
-                  phx-click="select_position"
-                  phx-value-row={row}
-                  phx-value-col={col}
-                  phx-value-val={piece}
-                  data-row={row}
-                  data-col={col}
-                  data-val={piece}
-                  aria-label={"#{piece} on #{col}#{row}"}
-                >
-                  <%= cond do %>
-                    <% piece == "x" -> %>
-                      <span class="daily-board__blocked"></span>
-                    <% is_binary(piece) -> %>
-                      <%= image_tag(piece) %>
-                    <% true -> %>
-                      <span class="daily-board__empty"></span>
-                  <% end %>
-                </td>
+              <th></th>
+              <%= for col <- ['H', 'G', 'F', 'E', 'D', 'C'] do %>
+                <th class="is-size-5"><%= col %></th>
               <% end %>
             </tr>
-          <% end %>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <!-- Rows with data and row labels -->
+            <%= for {row_index, row} <- @game_map do %>
+              <tr>
+                <th class="is-size-5"><%= row_index %></th>
+                <%= for {col_index, value} <- Enum.reverse(Map.to_list(row)) do %>
+                  <td
+                    class={"has-background-" <> chess_color(row_index, col_index, value)}
+                    data-row={row_index}
+                    data-col={col_index}
+                    data-val={value}
+                    aria-label={"#{value} on #{col_index}#{row_index}"}
+                    style="width: 75px; height: 75px; text-align: center; vertical-align: middle; font-size: 20px;"
+                  >
+                    <%= if value != 0, do: image_tag(value) %>
+                  </td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <aside class="daily-puzzle__panel">
-      <%= if @won do %>
-        <h2>Solved in <%= @move_count %></h2>
-        <p>
-          <%= if @current_user do %>
-            Your score has been saved for today.
-          <% else %>
-            Sign in to save future daily scores.
-          <% end %>
+    <div class="container">
+      <div class="notification is-light">
+        <p class="subtitle is-5">
+          Goal: <strong><%= String.upcase(@goal_position) %></strong>. Move the black knight onto today's goal square.
         </p>
-      <% else %>
-        <h2>Reach <%= String.upcase(@goal_position) %></h2>
-        <p>Move the black knight onto today's marked goal square.</p>
-      <% end %>
+        <p class="subtitle is-5">
+          Click on a piece to select it, then click on the destination square to move it.
+        </p>
 
-      <%= if @saved_score do %>
-        <p class="daily-puzzle__saved">
-          Saved score: <strong><%= @saved_score.move_count %></strong>
-        </p>
-      <% end %>
-    </aside>
-  </section>
-</main>
+        <%= if @won do %>
+          <p class="subtitle is-5">
+            Solved in <strong><%= @move_count %></strong>.
+            <%= if @current_user do %>
+              Your score has been saved for today.
+            <% else %>
+              Sign in to save future daily scores.
+            <% end %>
+          </p>
+        <% end %>
+
+        <%= if @saved_score do %>
+          <p class="subtitle is-5">
+            Saved score: <strong><%= @saved_score.move_count %></strong>
+          </p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
