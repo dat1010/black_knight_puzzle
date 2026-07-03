@@ -1,9 +1,6 @@
 <div class="is-flex is-justify-content-center is-align-items-center">
   <div>
     <div class="container">
-      <h1 class="title is-3">Daily Black Knight</h1>
-      <p class="subtitle is-5"><%= Calendar.strftime(@daily_puzzle.puzzle_date, "%B %d, %Y") %></p>
-
       <div class="columns">
         <div class="column">
           <p class="is-size-4">Move: <%= @move || "" %></p>
@@ -55,9 +52,6 @@
         </p>
         <p class="subtitle is-5">
           Click on a piece to select it, then click on the destination square to move it.
-        </p>
-        <p class="subtitle is-5">
-          Par: <strong><%= @daily_puzzle.solution_length %></strong>
         </p>
 
         <%= if @won do %>
