@@ -141,6 +141,24 @@ defmodule BlackKnightPuzzleWeb.DailyPuzzleLive do
     "#{start_val}#{lower}"
   end
 
+  defp chess_color(row_index, col_atom, value) do
+    col_index = BlackKnight.value_map()[col_atom]
+
+    cond do
+      value == "x" ->
+        "grey"
+
+      rem(row_index + col_index, 2) == 0 ->
+        "white"
+
+      rem(row_index + col_index, 2) != 0 ->
+        "black"
+
+      true ->
+        "grey"
+    end
+  end
+
   defp get_current_user(session) do
     if session["user_token"] == nil do
       nil

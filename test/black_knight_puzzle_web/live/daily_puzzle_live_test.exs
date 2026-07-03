@@ -7,8 +7,9 @@ defmodule BlackKnightPuzzleWeb.DailyPuzzleLiveTest do
     {:ok, _view, html} = live(conn, ~p"/daily")
 
     assert html =~ "Daily Black Knight"
-    assert html =~ "Moves"
-    assert html =~ "Goal"
+    assert html =~ "Move:"
+    assert html =~ "Count:"
+    assert html =~ "Goal:"
   end
 
   test "logged in users can load the daily puzzle", %{conn: conn} do
