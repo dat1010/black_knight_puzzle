@@ -19,6 +19,7 @@ defmodule BlackKnightPuzzleWeb.UserSessionController do
   end
 
   defp create(conn, user_params, info) do
+    user_params = normalize_user_params(user_params)
     %{"email" => email, "password" => password} = user_params
 
     if user = Accounts.get_user_by_email_and_password(email, password) do
@@ -33,6 +34,14 @@ defmodule BlackKnightPuzzleWeb.UserSessionController do
       |> redirect(to: ~p"/users/log_in")
     end
   end
+
+  defp normalize_user_params(%{"user" => user_params} = params) do
+    params
+    |> Map.delete("user")
+    |> Map.merge(user_params)
+  end
+
+  defp normalize_user_params(params), do: params
 
   def delete(conn, _params) do
     conn

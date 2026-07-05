@@ -7,9 +7,9 @@
         </h3>
         <p class="subtitle has-text-centered">
           Already registered?
-          <a href="/users/log_in" class="has-text-weight-semibold has-text-link">
+          <.link navigate={~p"/users/log_in"} class="has-text-weight-semibold has-text-link">
             Log in
-          </a>
+          </.link>
           to your account now.
         </p>
         <.simple_form
@@ -26,29 +26,60 @@
           </.error>
 
           <div class="field">
-            <label class="label" for="email">Email</label>
+            <label class="label" for={@form[:email].id}>Email</label>
             <div class="control">
-              <!--     <input class="input" type="email" id="email" name="email" required /> -->
-              <.input field={@form[:email]} type="email" required />
+              <input
+                class={[
+                  "input",
+                  @form[:email].errors != [] && "is-danger"
+                ]}
+                type="email"
+                id={@form[:email].id}
+                name={@form[:email].name}
+                value={Phoenix.HTML.Form.normalize_value("email", @form[:email].value)}
+                required
+              />
             </div>
+            <p
+              :for={error <- @form[:email].errors}
+              class="help is-danger phx-no-feedback:hidden"
+              phx-feedback-for={@form[:email].name}
+            >
+              <%= translate_error(error) %>
+            </p>
           </div>
           <div class="field">
-            <label class="label" for="password">Password</label>
+            <label class="label" for={@form[:password].id}>Password</label>
             <div class="control">
-              <!--     <input class="input" type="password" id="password" name="password" required /> -->
-              <.input field={@form[:password]} type="password" required />
+              <input
+                class={[
+                  "input",
+                  @form[:password].errors != [] && "is-danger"
+                ]}
+                type="password"
+                id={@form[:password].id}
+                name={@form[:password].name}
+                value={Phoenix.HTML.Form.normalize_value("password", @form[:password].value)}
+                required
+              />
             </div>
+            <p
+              :for={error <- @form[:password].errors}
+              class="help is-danger phx-no-feedback:hidden"
+              phx-feedback-for={@form[:password].name}
+            >
+              <%= translate_error(error) %>
+            </p>
           </div>
 
           <:actions>
             <div class="field">
               <div class="control">
                 <button type="submit" class="button is-link is-fullwidth">
-                  Create an account
+                  Create an account →
                 </button>
               </div>
             </div>
-            <!-- <.button phx-disable-with="Creating account..." class="w-full"></.button> -->
           </:actions>
         </.simple_form>
       </div>
