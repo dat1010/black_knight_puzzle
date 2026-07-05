@@ -57,6 +57,9 @@
         <div class="navbar-end">
           <div class="navbar-item">
             <div class="buttons">
+              <span class="navbar-item has-text-weight-semibold">
+                <%= @current_user.email %>
+              </span>
               <a class="button is-light" href={~p"/users/settings"}>
                 Settings
               </a>
