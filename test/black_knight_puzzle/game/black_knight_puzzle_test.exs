@@ -29,23 +29,20 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "get_move_to_position_string/1 returns move" do
-    board_state = BlackKnight.set_board()
-
     result = BlackKnight.get_move_to_position_string("Rc2c3")
     assert result == "c3"
   end
 
   test "get_move_from_position_string/1 returns current position" do
-    board_state = BlackKnight.set_board()
-
     result = BlackKnight.get_move_from_position_string("Rc2c3")
     assert result == "c2"
   end
 
-  test "get_move_to_position_string/1 returns error" do
-    board_state = BlackKnight.set_board()
-    result = BlackKnight.get_move_to_position_string("Rc3")
-    assert result == :error
+  test "move extraction helpers return error for malformed moves" do
+    for move <- ["", "Rc3", nil] do
+      assert BlackKnight.get_move_from_position_string(move) == :error
+      assert BlackKnight.get_move_to_position_string(move) == :error
+    end
   end
 
   test "update_position" do
@@ -84,35 +81,50 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "is_move_legal/2 rook returns true for vertical" do
-    board_state = BlackKnight.set_board()
+    board_state = BlackKnight.set_board() |> put_in([2, :G], 0)
 
     legal? = BlackKnight.is_move_legal?(board_state, "Rh2g2")
 
     assert legal?
   end
 
-  test "is_move_legal/2 rook returns false for vertical" do
-    board_state = BlackKnight.set_board()
+  test "is_move_legal/2 rook rejects a diagonal move" do
+    board_state = BlackKnight.set_board() |> put_in([2, :G], 0)
 
     legal? = BlackKnight.is_move_legal?(board_state, "Rh1g2")
 
     refute legal?
   end
 
+  test "is_move_legal/2 rook rejects a blocked path" do
+    board_state = BlackKnight.set_board() |> put_in([1, :F], 0)
+
+    refute BlackKnight.is_move_legal?(board_state, "Rh1f1")
+  end
+
   test "is_move_legal/2 bishop returns true" do
-    board_state = BlackKnight.set_board()
+    board_state = BlackKnight.set_board() |> put_in([2, :G], 0)
 
     legal? = BlackKnight.is_move_legal?(board_state, "Bh1g2")
 
     assert legal?
   end
 
-  test "is_move_legal/2 bishop returns true for edge to edge" do
-    board_state = BlackKnight.set_board()
+  test "is_move_legal/2 bishop returns true across an empty diagonal" do
+    board_state =
+      BlackKnight.set_board()
+      |> put_in([2, :G], 0)
+      |> put_in([3, :F], 0)
 
-    legal? = BlackKnight.is_move_legal?(board_state, "Bh1d5")
+    legal? = BlackKnight.is_move_legal?(board_state, "Bh1f3")
 
     assert legal?
+  end
+
+  test "is_move_legal/2 bishop rejects a blocked diagonal" do
+    board_state = BlackKnight.set_board() |> put_in([3, :F], 0)
+
+    refute BlackKnight.is_move_legal?(board_state, "Bh1f3")
   end
 
   test "is_move_legal/2 bishop returns false for horizontal move" do
@@ -123,7 +135,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
     refute legal?
   end
 
-  test "is_move_legal/2 kight returns false for move" do
+  test "is_move_legal/2 knight rejects a non-L-shaped move" do
     board_state = BlackKnight.set_board()
 
     legal? = BlackKnight.is_move_legal?(board_state, "Kh1f5")
@@ -131,8 +143,8 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
     refute legal?
   end
 
-  test "is_move_legal/2 kight returns true for move" do
-    board_state = BlackKnight.set_board()
+  test "is_move_legal/2 knight accepts an L-shaped move" do
+    board_state = BlackKnight.set_board() |> put_in([2, :F], 0)
 
     legal? = BlackKnight.is_move_legal?(board_state, "Kh1f2")
 
@@ -148,11 +160,38 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "is_move_legal/2 kight returns true for move middle" do
-    board_state = BlackKnight.set_board()
+    board_state = BlackKnight.set_board() |> put_in([2, :G], 0)
 
     legal? = BlackKnight.is_move_legal?(board_state, "Ke3g2")
 
     assert legal?
+  end
+
+  test "is_move_legal/2 player knight uses knight movement" do
+    board_state = BlackKnight.set_board() |> put_in([2, :F], 0)
+
+    assert BlackKnight.is_move_legal?(board_state, "Ph1f2")
+  end
+
+  test "process_move/3 returns the ordinary successful move tuple" do
+    board_state = BlackKnight.set_board()
+
+    assert {:ok, "Move processed", updated_state} =
+             BlackKnight.process_move(board_state, "Rc2c3")
+
+    assert BlackKnight.get_board_value_at(updated_state, "c2") == 0
+    assert BlackKnight.get_board_value_at(updated_state, "c3") == "R"
+  end
+
+  test "malformed moves are illegal and process without raising" do
+    board_state = BlackKnight.set_board()
+
+    for move <- ["", "Rc2", nil, "Xc2c3", "Rc2z3", "Rc2c9", "Rc2c"] do
+      refute BlackKnight.is_move_legal?(board_state, move)
+
+      assert BlackKnight.process_move(board_state, move) ==
+               {:error, "Illegal move", board_state}
+    end
   end
 
   test "process_move/3 can finish at a custom goal" do

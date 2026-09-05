@@ -55,16 +55,11 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
       {:error, "Illegal move", %{}}
   """
   def process_move(game_state, move, winning_spot \\ "c3") do
-    cond do
-      !is_move_legal?(game_state, move) ->
-        {:error, "Illegal move", game_state}
-
-      is_move_legal?(game_state, move) ->
-        updated_game_state = update_position(game_state, move)
-        check_game_completion(updated_game_state, winning_spot)
-
-      true ->
-        {:error, "Unexpected error", game_state}
+    if is_move_legal?(game_state, move) do
+      updated_game_state = update_position(game_state, move)
+      check_game_completion(updated_game_state, winning_spot)
+    else
+      {:error, "Illegal move", game_state}
     end
   end
 
@@ -135,93 +130,94 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   updates the current game state with the new position
   """
   def update_position(game_state, move) do
-    # get move_to_position
-    position_to_string = get_move_to_position_string(move)
-    move_from_string = get_move_from_position_string(move)
-
-    moving_value = get_board_value_at(game_state, move_from_string)
-    value_at = get_board_value_at(game_state, position_to_string)
+    {:ok, _piece, from, to} = parse_move(move)
+    normalized_game_state = normalize_game_state(game_state)
+    moving_value = board_value_at(normalized_game_state, from)
+    value_at = board_value_at(normalized_game_state, to)
 
     if value_at != "x" and value_at == 0 do
-      # check if move is valid
-      column_atom = get_column_atom(position_to_string)
-      row_integer = get_row_integer(position_to_string)
-
-      from_column_atom = get_column_atom(move_from_string)
-      from_row_integer = get_row_integer(move_from_string)
-
-      game_state
-      |> put_in([from_row_integer, from_column_atom], 0)
-      |> put_in([row_integer, column_atom], moving_value)
+      normalized_game_state
+      |> put_in([from.row, from.column], 0)
+      |> put_in([to.row, to.column], moving_value)
     else
       :error
     end
   end
 
   def get_column_atom(position) do
-    position_array = String.split(position, "", trim: true)
-
-    [column_lower_case | _row_array] = position_array
-
-    column_lower_case
-    |> String.upcase()
-    |> String.to_atom()
+    {:ok, coordinate} = parse_coordinate(position)
+    coordinate.column
   end
 
   def get_row_integer(position) do
-    position_array = String.split(position, "", trim: true)
-
-    [_column_lower_case | row_array] = position_array
-
-    row_array
-    |> hd()
-    |> String.to_integer()
+    {:ok, coordinate} = parse_coordinate(position)
+    coordinate.row
   end
 
   def get_move_to_position_string(move) do
-    position_array = String.split(move, "", trim: true)
+    case split_move(move) do
+      {:ok, [_piece, _from_column, _from_row, to_column, to_row]} ->
+        "#{to_column}#{to_row}"
 
-    if length(position_array) == 5 do
-      column = Enum.at(position_array, 3)
-      row = Enum.at(position_array, 4)
-      "#{column}#{row}"
-    else
-      :error
+      :error ->
+        :error
     end
   end
 
   def get_move_from_position_string(move) do
-    position_array = String.split(move, "", trim: true)
+    case split_move(move) do
+      {:ok, [_piece, from_column, from_row, _to_column, _to_row]} ->
+        "#{from_column}#{from_row}"
 
-    if length(position_array) == 5 do
-      column = Enum.at(position_array, 1)
-      row = Enum.at(position_array, 2)
-      "#{column}#{row}"
-    else
-      :error
+      :error ->
+        :error
     end
   end
 
   def get_board_value_at(game_state, position) do
-    # TODO need to make sure the postion we get is valid first
-    position_array = String.split(position, "", trim: true)
-
-    [column_lower_case | row_array] = position_array
-
-    formatted_column =
-      column_lower_case
-      |> String.upcase()
-      |> String.to_atom()
-
-    formatted_row =
-      row_array
-      |> hd()
-      |> String.to_integer()
-
-    game_state = normalize_game_state(game_state)
-
-    game_state[formatted_row][formatted_column]
+    {:ok, coordinate} = parse_coordinate(position)
+    game_state |> normalize_game_state() |> board_value_at(coordinate)
   end
+
+  defp split_move(move) when is_binary(move) do
+    case String.graphemes(move) do
+      [_, _, _, _, _] = parts -> {:ok, parts}
+      _ -> :error
+    end
+  end
+
+  defp split_move(_move), do: :error
+
+  defp parse_move(move) do
+    with {:ok, [piece, from_column, from_row, to_column, to_row]} <- split_move(move),
+         {:ok, from} <- parse_coordinate(from_column <> from_row),
+         {:ok, to} <- parse_coordinate(to_column <> to_row) do
+      {:ok, piece, from, to}
+    end
+  end
+
+  defp parse_coordinate(position) when is_binary(position) do
+    with [column, row] <- String.graphemes(position),
+         {:ok, column_atom, column_index} <- parse_column(column),
+         {row_integer, ""} <- Integer.parse(row),
+         true <- row_integer in rows() do
+      {:ok, %{column: column_atom, column_index: column_index, row: row_integer}}
+    else
+      _ -> :error
+    end
+  end
+
+  defp parse_coordinate(_position), do: :error
+
+  defp parse_column(column) do
+    column_atom =
+      %{"H" => :H, "G" => :G, "F" => :F, "E" => :E, "D" => :D, "C" => :C}
+      |> Map.get(String.upcase(column))
+
+    if column_atom, do: {:ok, column_atom, value_map()[column_atom]}, else: :error
+  end
+
+  defp board_value_at(game_state, coordinate), do: game_state[coordinate.row][coordinate.column]
 
   def is_game_finished?(game_state, winning_spot \\ "c3") do
     value_at = get_board_value_at(game_state, winning_spot)
@@ -238,50 +234,30 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   all other peices can't go through another piece.
   """
   def is_move_legal?(game_state, move) do
-    piece =
-      move
-      |> String.split("", trim: true)
-      |> hd()
-
-    position_from = get_move_from_position_string(move)
-    position_to = get_move_to_position_string(move)
-    value_at = get_board_value_at(game_state, position_to)
-
-    if position_to != position_from and value_at == 0 do
+    with {:ok, piece, from, to} <- parse_move(move),
+         true <- piece in ["R", "B", "K", "P"],
+         false <- from == to,
+         normalized_game_state <- normalize_game_state(game_state),
+         0 <- board_value_at(normalized_game_state, to) do
       case piece do
         "R" ->
-          is_rook_move_legal?(game_state, position_from, position_to)
+          is_rook_move_legal?(normalized_game_state, from, to)
 
         "B" ->
-          is_bishop_move_legal?(game_state, position_from, position_to)
+          is_bishop_move_legal?(normalized_game_state, from, to)
 
-        "K" ->
-          is_knight_move_legal?(position_from, position_to)
-
-        "P" ->
-          is_knight_move_legal?(position_from, position_to)
-
-        _ ->
-          false
+        knight when knight in ["K", "P"] ->
+          is_knight_move_legal?(from, to)
       end
     else
-      false
+      _ -> false
     end
   end
 
   @doc false
-  defp is_knight_move_legal?(position_from, position_to) do
-    from_column_atom = get_column_atom(position_from)
-    from_row_integer = get_row_integer(position_from)
-
-    to_column_atom = get_column_atom(position_to)
-    to_row_integer = get_row_integer(position_to)
-
-    from_column_integer = value_map()[from_column_atom]
-    to_column_integer = value_map()[to_column_atom]
-
-    delta_x = abs(from_column_integer - to_column_integer)
-    delta_y = abs(from_row_integer - to_row_integer)
+  defp is_knight_move_legal?(from, to) do
+    delta_x = abs(from.column_index - to.column_index)
+    delta_y = abs(from.row - to.row)
 
     cond do
       delta_x == 2 and delta_y == 1 ->
@@ -290,48 +266,27 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
       delta_x == 1 and delta_y == 2 ->
         true
 
-      delta_y == 2 and delta_x == 1 ->
-        true
-
-      delta_y == 1 and delta_x == 2 ->
-        true
-
       true ->
         false
     end
   end
 
   @doc false
-  defp is_bishop_move_legal?(game_state, position_from, position_to) do
-    from_column_atom = get_column_atom(position_from)
-    from_row_integer = get_row_integer(position_from)
+  defp is_bishop_move_legal?(game_state, from, to) do
+    delta_x = abs(from.column_index - to.column_index)
+    delta_y = abs(from.row - to.row)
 
-    to_column_atom = get_column_atom(position_to)
-    to_row_integer = get_row_integer(position_to)
-
-    from_column_integer = value_map()[from_column_atom]
-    to_column_integer = value_map()[to_column_atom]
-
-    delta_x = abs(from_column_integer - to_column_integer)
-    delta_y = abs(from_row_integer - to_row_integer)
-
-    delta_x == delta_y and path_clear_diagonal?(game_state, position_from, position_to)
+    delta_x == delta_y and path_clear_diagonal?(game_state, from, to)
   end
 
   @doc false
-  defp is_rook_move_legal?(game_state, position_from, position_to) do
-    from_column_atom = get_column_atom(position_from)
-    from_row_integer = get_row_integer(position_from)
-
-    to_column_atom = get_column_atom(position_to)
-    to_row_integer = get_row_integer(position_to)
-
+  defp is_rook_move_legal?(game_state, from, to) do
     cond do
-      from_column_atom == to_column_atom ->
-        path_clear_linear?(game_state, position_from, position_to)
+      from.column == to.column ->
+        path_clear_linear?(game_state, from, to)
 
-      to_row_integer == from_row_integer ->
-        path_clear_linear?(game_state, position_from, position_to)
+      to.row == from.row ->
+        path_clear_linear?(game_state, from, to)
 
       true ->
         false
@@ -339,47 +294,35 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   end
 
   # Returns true if all intermediate squares between from and to are empty (0) and not blocked ("x")
-  defp path_clear_linear?(game_state, position_from, position_to) do
-    from_col = get_column_atom(position_from)
-    from_row = get_row_integer(position_from)
-    to_col = get_column_atom(position_to)
-    to_row = get_row_integer(position_to)
-
-    cols = value_map()
-
+  defp path_clear_linear?(game_state, from, to) do
     cond do
-      from_col == to_col ->
+      from.column == to.column ->
         # moving along column: vary rows by step
-        steps = abs(to_row - from_row) - 1
+        steps = abs(to.row - from.row) - 1
 
         if steps <= 0 do
           true
         else
-          step = if to_row > from_row, do: 1, else: -1
+          step = if to.row > from.row, do: 1, else: -1
 
           Enum.all?(1..steps, fn i ->
-            r = from_row + i * step
-            pos = "#{Atom.to_string(from_col) |> String.downcase()}#{r}"
-            get_board_value_at(game_state, pos) == 0
+            board_value_at(game_state, %{from | row: from.row + i * step}) == 0
           end)
         end
 
-      from_row == to_row ->
+      from.row == to.row ->
         # moving along row: vary columns via numeric mapping
-        from_c_i = cols[from_col]
-        to_c_i = cols[to_col]
-        steps = abs(to_c_i - from_c_i) - 1
+        steps = abs(to.column_index - from.column_index) - 1
 
         if steps <= 0 do
           true
         else
-          step = if to_c_i > from_c_i, do: 1, else: -1
+          step = if to.column_index > from.column_index, do: 1, else: -1
 
           Enum.all?(1..steps, fn i ->
-            ci = from_c_i + i * step
-            col_atom = Enum.find(cols, fn {_k, v} -> v == ci end) |> elem(0)
-            pos = "#{Atom.to_string(col_atom) |> String.downcase()}#{from_row}"
-            get_board_value_at(game_state, pos) == 0
+            column_index = from.column_index + i * step
+            column = Enum.at(columns(), column_index - 1)
+            board_value_at(game_state, %{from | column: column, column_index: column_index}) == 0
           end)
         end
 
@@ -389,30 +332,20 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   end
 
   # Returns true if all intermediate diagonal squares are empty
-  defp path_clear_diagonal?(game_state, position_from, position_to) do
-    from_col = get_column_atom(position_from)
-    from_row = get_row_integer(position_from)
-    to_col = get_column_atom(position_to)
-    to_row = get_row_integer(position_to)
-
-    cols = value_map()
-    from_c_i = cols[from_col]
-    to_c_i = cols[to_col]
-
-    steps = abs(to_c_i - from_c_i) - 1
+  defp path_clear_diagonal?(game_state, from, to) do
+    steps = abs(to.column_index - from.column_index) - 1
 
     if steps <= 0 do
       true
     else
-      step_c = if to_c_i > from_c_i, do: 1, else: -1
-      step_r = if to_row > from_row, do: 1, else: -1
+      step_c = if to.column_index > from.column_index, do: 1, else: -1
+      step_r = if to.row > from.row, do: 1, else: -1
 
       Enum.all?(1..steps, fn s ->
-        ci = from_c_i + s * step_c
-        ri = from_row + s * step_r
-        col_atom = Enum.find(cols, fn {_k, v} -> v == ci end) |> elem(0)
-        pos = "#{Atom.to_string(col_atom) |> String.downcase()}#{ri}"
-        get_board_value_at(game_state, pos) == 0
+        column_index = from.column_index + s * step_c
+        column = Enum.at(columns(), column_index - 1)
+        coordinate = %{column: column, column_index: column_index, row: from.row + s * step_r}
+        board_value_at(game_state, coordinate) == 0
       end)
     end
   end
