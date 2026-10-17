@@ -1,6 +1,6 @@
 # Black Knight Puzzle — Review & Roadmap
 
-_Last updated: 2026-10-17. Status: Phase 0 planned, not started._
+_Last updated: 2026-10-17. Status: Phase 0 implemented on local stacked branches `phase0/1-…` through `phase0/5-…`; not yet pushed or merged. Branch protection on `main` is not yet enabled._
 
 ## Product direction
 
@@ -60,74 +60,90 @@ games are secondary.
 board, users can only open their own games, and the suite is green and fast.
 
 ### PR 1: Stop deploying from PRs
-- [ ] Remove the `pull_request` trigger and `dev` from `push` in `.github/workflows/main.yml`.
+- [x] Remove the `pull_request` trigger and `dev` from `push` in `.github/workflows/main.yml`.
 - **Done when:** opening a PR does not start a Fly deploy.
 
 ### PR 2: Green, fast test suite
-- [ ] Rewrite the 5 stale legality tests in
+- [x] Rewrite the 5 stale legality tests in
       `test/black_knight_puzzle/game/black_knight_puzzle_test.exs` with boards that fit each scenario.
-- [ ] Add a `daily_puzzle_fixture/1` that inserts a known puzzle; live and context tests use it
+- [x] Add a `daily_puzzle_fixture/1` that inserts a known puzzle; live and context tests use it
       instead of the generator. Keep one generator test with a seed that solves quickly.
-- [ ] Replace the default Phoenix home-page assertion.
-- [ ] Fix compiler warnings: unused `Accounts` alias and `process_move/2` in Show; replace
+- [x] Replace the default Phoenix home-page assertion.
+- [x] Fix compiler warnings: unused `Accounts` alias and `process_move/2` in Show; replace
       `live_redirect` with `<.link navigate>`.
-- [ ] Move `<nav>` inside `<body>` in `root.html.heex`.
+- [x] Move `<nav>` inside `<body>` in `root.html.heex`.
 - **Done when:** `mix test` passes in about 15s or less.
 
 ### PR 3: Server-checked moves
-- [ ] Add `BlackKnight.parse_move/1` → `{:ok, {from, to}} | :error`, using an allowlist
+- [x] Add `BlackKnight.parse_move/1` → `{:ok, {from, to}} | :error`, using an allowlist
       (columns c–h, rows 1–3) and no `String.to_atom`.
-- [ ] `process_move` reads the piece from the server's board at the from-square; reject empty,
+- [x] `process_move` reads the piece from the server's board at the from-square; reject empty,
       blocked (`x`) or off-board from-squares.
-- [ ] `normalize_game_state` maps column names through a fixed list.
-- [ ] Add a fallback `handle_event` clause in all 3 LiveViews: malformed parameters show an
+- [x] `normalize_game_state` maps column names through a fixed list.
+- [x] Add a fallback `handle_event` clause in all 3 LiveViews: malformed parameters show an
       error message instead of crashing.
-- [ ] **Tests:**
-  - [ ] a rook sent as `P`/`K` is rejected
-  - [ ] `Kh3f2` can't move the blocked square
-  - [ ] a move from an empty square is rejected
-  - [ ] junk parameters don't crash the LiveView
+- [x] **Tests:**
+  - [x] a rook sent as `P`/`K` is rejected
+  - [x] `Kh3f2` can't move the blocked square
+  - [x] a move from an empty square is rejected
+  - [x] junk parameters don't crash the LiveView
 - **Done when:** forged moves never change the board or the move count.
 
 ### PR 4: Game ownership and routes
-- [ ] Routes: `/games` and `/games/:id` in the logged-in-only section; old `/users/:id/games...`
+- [x] Routes: `/games` and `/games/:id` in the logged-in-only section; old `/users/:id/games...`
       paths redirect to them.
-- [ ] Add `Games.list_user_games(user)` and `Games.get_user_game!(user, id)` (scoped to the user;
+- [x] Add `Games.list_user_games(user)` and `Games.get_user_game!(user, id)` (scoped to the user;
       missing or foreign games give a 404). Remove the `hd()` calls.
-- [ ] Moves update the loaded, user-scoped game record, not a lookup by ID.
-- [ ] Fix the bug where normal moves set `won: true`; block moves once a game is won.
-- [ ] `new_game`: look up the game row (no hardcoded `game_id: 1`); send logged-out users to login.
-- [ ] Update the "My Games" nav link, the post-create redirect and the game list links.
-- [ ] **Tests:**
-  - [ ] user A gets a 404 on user B's game
-  - [ ] the game list shows only your own games
-  - [ ] a normal move leaves `won` false
-  - [ ] a logged-out user clicking New Game is sent to login
+- [x] Moves update the loaded, user-scoped game record, not a lookup by ID.
+- [x] Fix the bug where normal moves set `won: true`; block moves once a game is won.
+- [x] `new_game`: look up the game row (no hardcoded `game_id: 1`); send logged-out users to login.
+- [x] Update the "My Games" nav link, the post-create redirect and the game list links.
+- [x] **Tests:**
+  - [x] user A gets a 404 on user B's game
+  - [x] the game list shows only your own games
+  - [x] a normal move leaves `won` false
+  - [x] a logged-out user clicking New Game is sent to login
 - **Done when:** a user can't view or change another user's game.
 
 ### PR 5: CI gate and branch protection
-- [ ] One workflow with two jobs:
-  - [ ] `test` on PRs and pushes to `main`: Postgres service, `setup-beam` (Elixir 1.15.4 /
+- [x] One workflow with two jobs:
+  - [x] `test` on PRs and pushes to `main`: Postgres service, `setup-beam` (Elixir 1.15.4 /
         OTP 25), cached `deps` and `_build`; runs `deps.get`, `compile --warnings-as-errors`,
         `format --check-formatted` and `test`.
-  - [ ] `deploy` with `needs: test`, only on pushes to `main`.
-- [ ] Branch protection on `main`: require the `test` check and PRs (confirm before applying).
+  - [x] `deploy` with `needs: test`, only on pushes to `main`.
+- [x] Branch protection on `main`: require the `test` check and PRs (confirm before applying).
 - **Done when:** a failing PR can't merge, and a broken `main` can't deploy.
 
-### Open decisions (my recommendation first)
-1. **`dev` branch deploys:** drop them for now (recommended), or add a separate staging Fly app later.
-2. **Old `/users/:id/games` URLs:** redirect them (recommended) or remove them.
-3. **Saved games wrongly marked won:** run a one-time script that recomputes `won` from whether
-   the black knight is on the goal square (recommended).
+- [ ] Enable branch protection on `main` (needs the user's go-ahead).
+- [ ] Merge PRs 1–5 in order. **Merge PR 1 before opening the others:** until it lands, every
+      opened PR deploys to production.
+
+### Decisions made
+1. **`dev` branch deploys:** dropped. A staging Fly app can come later.
+2. **Old `/users/:id/games` URLs:** redirect to `/games` and `/games/:id`.
+3. **Saved games wrongly marked won:** recomputed by the PR 4 migration (won = black knight on C3).
+
+### Found during Phase 0
+- **`user_games.game_id` was a foreign key to `users`, not `games`** (migration
+  `20240514173541`). New games only saved if a user with id 1 existed. PR 4's migration
+  `20261017120000_fix_user_games_game_reference` fixes it: it creates the classic game row
+  (production never ran seeds), repoints all user games, and adds the correct foreign key. It was
+  tested on production-shaped data, including rollback and re-run. **Back up the production
+  database before deploying it.**
+- **Daily generation timing is worse than estimated:** the default board takes 2.5s, one date
+  took 77s, and another was still running after 8 minutes. The fallback board's solution is now
+  precomputed, but random candidates still run BFS at request time. This makes precomputing daily
+  puzzles the top Phase 1 item.
+- CI now pins Elixir 1.15.7 / OTP 25.3.2.6 to match the Dockerfile; keep them in sync.
 
 ## Phase 1: Solid core (about 1 week)
+- [ ] **Top priority:** generate daily puzzles ahead of time with a scheduled job (Oban cron or
+      a GenServer), so no request waits on BFS (see the timing notes under Phase 0). Stopgap if
+      needed sooner: generate tomorrow's puzzle in a background task when the app starts.
 - [ ] One `Board` module with a clean data model (positions as `{row, col}` tuples) and
       serialization only at the database boundary.
 - [ ] One shared board LiveComponent and a single move pipeline for all three modes.
 - [ ] Faster solver: normalize once and use compact state keys.
-- [ ] Generate daily puzzles ahead of time with a scheduled job (Oban cron or a GenServer), so no
-      request waits on BFS. Stopgap if needed sooner: generate tomorrow's puzzle in a background
-      task when the app starts.
 - [ ] Property tests: random legal-move sequences never corrupt the board, and every generated
       puzzle is solvable.
 - [ ] Choose Tailwind or Bulma; stop committing `priv/static/assets`; remove dead code.
