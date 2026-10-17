@@ -10,7 +10,6 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   3. Four White Bishops
   4. Four White Rooks
   A total of 13 pieces are present.
-  A total of 13 pieces are present.
 
   The puzzle is set on a 3x6 grid, with the bottom left five cells marked as unavailable:
   0  H  G  F  E  D  C
@@ -55,16 +54,12 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
       {:error, "Illegal move", %{}}
   """
   def process_move(game_state, move, winning_spot \\ "c3") do
-    cond do
-      !is_move_legal?(game_state, move) ->
-        {:error, "Illegal move", game_state}
-
-      is_move_legal?(game_state, move) ->
-        updated_game_state = update_position(game_state, move)
-        check_game_completion(updated_game_state, winning_spot)
-
-      true ->
-        {:error, "Unexpected error", game_state}
+    if is_move_legal?(game_state, move) do
+      game_state
+      |> update_position(move)
+      |> check_game_completion(winning_spot)
+    else
+      {:error, "Illegal move", game_state}
     end
   end
 
@@ -84,9 +79,53 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
     }
   end
 
+  @pieces ["P", "K", "B", "R"]
+  @column_atoms %{"H" => :H, "G" => :G, "F" => :F, "E" => :E, "D" => :D, "C" => :C}
+  @row_integers %{"1" => 1, "2" => 2, "3" => 3}
+
   def value_map() do
     %{H: 1, G: 2, F: 3, E: 4, D: 5, C: 6}
   end
+
+  @doc """
+  Builds a move string such as "Rc2c3" from client-supplied event params.
+
+  Returns `:error` unless every part is a string; the result still has to pass
+  `parse_move/1`, which checks that the squares are on the board.
+  """
+  def build_move(from_row, from_col, piece, to_row, to_col)
+      when is_binary(from_row) and is_binary(from_col) and is_binary(piece) and
+             is_binary(to_row) and is_binary(to_col) do
+    piece <> String.downcase(from_col <> from_row <> to_col <> to_row)
+  end
+
+  def build_move(_from_row, _from_col, _piece, _to_row, _to_col), do: :error
+
+  @doc """
+  Parses a move string such as "Rc2c3" into `{:ok, piece, from, to}`.
+
+  Returns `:error` for anything that isn't a known piece followed by two squares
+  on the board. Squares are returned lowercase, e.g. "c2".
+  """
+  def parse_move(<<piece::binary-size(1), from::binary-size(2), to::binary-size(2)>>)
+      when piece in @pieces do
+    from = String.downcase(from)
+    to = String.downcase(to)
+
+    if valid_square?(from) and valid_square?(to) do
+      {:ok, piece, from, to}
+    else
+      :error
+    end
+  end
+
+  def parse_move(_move), do: :error
+
+  defp valid_square?(<<col::binary-size(1), row::binary-size(1)>>) do
+    Map.has_key?(@column_atoms, String.upcase(col)) and Map.has_key?(@row_integers, row)
+  end
+
+  defp valid_square?(_square), do: false
 
   def columns do
     [:H, :G, :F, :E, :D, :C]
@@ -113,7 +152,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
       normalized_row =
         case row do
           row when is_integer(row) -> row
-          row when is_binary(row) -> String.to_integer(row)
+          row when is_binary(row) -> Map.fetch!(@row_integers, row)
         end
 
       normalized_cols =
@@ -121,7 +160,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
           normalized_col =
             case col do
               col when is_atom(col) -> col
-              col when is_binary(col) -> String.to_atom(col)
+              col when is_binary(col) -> Map.fetch!(@column_atoms, col)
             end
 
           {normalized_col, value}
@@ -163,9 +202,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
 
     [column_lower_case | _row_array] = position_array
 
-    column_lower_case
-    |> String.upcase()
-    |> String.to_atom()
+    Map.fetch!(@column_atoms, String.upcase(column_lower_case))
   end
 
   def get_row_integer(position) do
@@ -173,9 +210,7 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
 
     [_column_lower_case | row_array] = position_array
 
-    row_array
-    |> hd()
-    |> String.to_integer()
+    Map.fetch!(@row_integers, hd(row_array))
   end
 
   def get_move_to_position_string(move) do
@@ -203,24 +238,9 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   end
 
   def get_board_value_at(game_state, position) do
-    # TODO need to make sure the postion we get is valid first
-    position_array = String.split(position, "", trim: true)
-
-    [column_lower_case | row_array] = position_array
-
-    formatted_column =
-      column_lower_case
-      |> String.upcase()
-      |> String.to_atom()
-
-    formatted_row =
-      row_array
-      |> hd()
-      |> String.to_integer()
-
     game_state = normalize_game_state(game_state)
 
-    game_state[formatted_row][formatted_column]
+    game_state[get_row_integer(position)][get_column_atom(position)]
   end
 
   def is_game_finished?(game_state, winning_spot \\ "c3") do
@@ -238,34 +258,20 @@ defmodule BlackKnightPuzzle.Game.BlackKnight do
   all other peices can't go through another piece.
   """
   def is_move_legal?(game_state, move) do
-    piece =
-      move
-      |> String.split("", trim: true)
-      |> hd()
-
-    position_from = get_move_from_position_string(move)
-    position_to = get_move_to_position_string(move)
-    value_at = get_board_value_at(game_state, position_to)
-
-    if position_to != position_from and value_at == 0 do
+    # The piece is read from the board, never trusted from the move string. A move
+    # whose piece letter doesn't match the board (e.g. a rook sent as "K") is rejected.
+    with {:ok, piece, position_from, position_to} <- parse_move(move),
+         true <- position_from != position_to,
+         ^piece <- get_board_value_at(game_state, position_from),
+         0 <- get_board_value_at(game_state, position_to) do
       case piece do
-        "R" ->
-          is_rook_move_legal?(game_state, position_from, position_to)
-
-        "B" ->
-          is_bishop_move_legal?(game_state, position_from, position_to)
-
-        "K" ->
-          is_knight_move_legal?(position_from, position_to)
-
-        "P" ->
-          is_knight_move_legal?(position_from, position_to)
-
-        _ ->
-          false
+        "R" -> is_rook_move_legal?(game_state, position_from, position_to)
+        "B" -> is_bishop_move_legal?(game_state, position_from, position_to)
+        "K" -> is_knight_move_legal?(position_from, position_to)
+        "P" -> is_knight_move_legal?(position_from, position_to)
       end
     else
-      false
+      _ -> false
     end
   end
 

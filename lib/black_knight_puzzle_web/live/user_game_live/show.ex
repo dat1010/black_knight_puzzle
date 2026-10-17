@@ -4,10 +4,11 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
   alias BlackKnightPuzzle.Game.BlackKnight
   alias BlackKnightPuzzle.Games
 
+  @impl true
   def mount(%{"id" => user_game_id}, _session, socket) do
     user_game = Games.get_user_game_by_id(user_game_id)
 
-    current_state = convert_from_json_to_map(user_game.current_state)
+    current_state = BlackKnight.normalize_game_state(user_game.current_state)
     count = Enum.count(user_game.user_game_moves)
 
     {:ok,
@@ -23,89 +24,7 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
      )}
   end
 
-  def handle_event("select_position", %{"row" => row, "col" => col, "val" => val}, socket) do
-    case {socket.assigns.selected_start, socket.assigns.selected_end} do
-      {nil, _} ->
-        {:noreply, assign(socket, selected_start: {row, col, val}, move: "#{val}#{row}#{col}")}
-
-      {{start_row, start_col, start_val}, nil} ->
-        lower = String.downcase("#{start_col}#{start_row}#{col}#{row}")
-        move = "#{start_val}#{lower}"
-
-        case BlackKnight.process_move(socket.assigns.game_map, move) do
-          {:ok, "Game finished", new_game_map} ->
-            Games.create_user_game_move(%{
-              "user_game_id" => socket.assigns.user_game_id,
-              "move" => move
-            })
-
-            Games.update_user_game(socket.assigns.user_game_id, %{
-              "current_state" => new_game_map,
-              "won" => true
-            })
-
-            socket =
-              socket
-              |> assign(
-                selected_start: nil,
-                selected_end: nil,
-                move: move,
-                move_count: socket.assigns.move_count + 1,
-                game_map: new_game_map,
-                error: ""
-              )
-              |> put_flash(:info, "Congratulations! You've won the game!")
-
-            {:noreply, socket}
-
-          {:ok, _, new_game_map} ->
-            Games.create_user_game_move(%{
-              "user_game_id" => socket.assigns.user_game_id,
-              "move" => move
-            })
-
-            Games.update_user_game(socket.assigns.user_game_id, %{
-              "current_state" => new_game_map
-            })
-
-            {:noreply,
-             assign(socket,
-               selected_start: nil,
-               selected_end: nil,
-               move: move,
-               move_count: socket.assigns.move_count + 1,
-               game_map: new_game_map,
-               error: ""
-             )}
-
-          {:error, reason, game_map} ->
-            socket =
-              socket
-              |> assign(
-                selected_start: nil,
-                selected_end: nil,
-                move: nil,
-                move_count: socket.assigns.move_count,
-                game_map: game_map,
-                error: reason
-              )
-              |> LiveToast.put_toast(:error, "Illegal move.")
-
-            {:noreply, socket}
-        end
-
-      _ ->
-        {:noreply,
-         assign(socket,
-           selected_start: nil,
-           selected_end: nil,
-           move: nil,
-           move_count: 0,
-           game_map: socket.assigns.game_map
-         )}
-    end
-  end
-
+  @impl true
   def handle_event(
         "move_piece",
         %{
@@ -117,13 +36,14 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
         },
         socket
       ) do
-    move = build_move(start_row, start_col, start_val, row, col)
-    process_completed_move(socket, move)
+    case BlackKnight.build_move(start_row, start_col, start_val, row, col) do
+      :error -> {:noreply, reject_move(socket)}
+      move -> process_completed_move(socket, move)
+    end
   end
 
-  defp build_move(start_row, start_col, start_val, row, col) do
-    lower = String.downcase("#{start_col}#{start_row}#{col}#{row}")
-    "#{start_val}#{lower}"
+  def handle_event("move_piece", _params, socket) do
+    {:noreply, reject_move(socket)}
   end
 
   defp process_completed_move(socket, move) do
@@ -191,6 +111,12 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
     end
   end
 
+  defp reject_move(socket) do
+    socket
+    |> assign(selected_start: nil, selected_end: nil, move: nil, error: "Illegal move")
+    |> LiveToast.put_toast(:error, "Illegal move.")
+  end
+
   defp chess_color(row_index, col_atom, value) do
     col_index = BlackKnight.value_map()[col_atom]
 
@@ -224,39 +150,4 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
       Phoenix.HTML.raw(html_content)
     end
   end
-
-  defp convert_from_json_to_map(game_state_json) do
-    # Helper function to convert keys of a map to atoms
-    convert_keys_to_atoms = fn map ->
-      map
-      |> Map.new(fn {k, v} -> {String.to_atom(k), v} end)
-    end
-
-    # Convert each top-level key's nested map
-    Enum.reduce(game_state_json, %{}, fn {key, value}, acc ->
-      atom_key = String.to_integer(key)
-      atom_value = convert_keys_to_atoms.(value)
-      Map.put(acc, atom_key, atom_value)
-    end)
-  end
-
-  # defp convert_from_json_to_map(game_state_json) do
-  #   first_map =
-  #     game_state_json["1"]
-  #     |> Map.new(fn {k, v} -> {String.to_atom(k), v} end)
-  #
-  #   second_map =
-  #     game_state_json["2"]
-  #     |> Map.new(fn {k, v} -> {String.to_atom(k), v} end)
-  #
-  #   third_map =
-  #     game_state_json["3"]
-  #     |> Map.new(fn {k, v} -> {String.to_atom(k), v} end)
-  #
-  #   %{
-  #     1 => first_map,
-  #     2 => second_map,
-  #     3 => third_map
-  #   }
-  # end
 end

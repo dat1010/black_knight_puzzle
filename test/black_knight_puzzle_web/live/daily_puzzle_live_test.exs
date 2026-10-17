@@ -29,6 +29,39 @@ defmodule BlackKnightPuzzleWeb.DailyPuzzleLiveTest do
     assert html =~ "Count: 1"
   end
 
+  test "a forged piece type is rejected and not counted", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/daily")
+
+    # d1 holds a bishop; claiming it is a knight must not let it jump to c3.
+    html =
+      render_hook(view, "move_piece", %{
+        "from_row" => "1",
+        "from_col" => "D",
+        "val" => "K",
+        "to_row" => "3",
+        "to_col" => "C"
+      })
+
+    assert html =~ "Count: 0"
+    assert html =~ ~s(data-row="1" data-col="D" data-val="B")
+    assert html =~ ~s(data-row="3" data-col="C" data-val="0")
+  end
+
+  test "malformed move events don't crash the page", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/daily")
+
+    for params <- [
+          %{},
+          %{"from_row" => "9", "from_col" => "Z", "val" => "R", "to_row" => "3", "to_col" => "C"},
+          %{"from_row" => 2, "from_col" => "C", "val" => "R", "to_row" => "3", "to_col" => "C"},
+          %{"from_row" => "2", "from_col" => %{}, "val" => "R", "to_row" => "3", "to_col" => "C"}
+        ] do
+      assert render_hook(view, "move_piece", params) =~ "Count: 0"
+    end
+
+    assert Process.alive?(view.pid)
+  end
+
   test "logged in users can load the daily puzzle", %{conn: conn} do
     %{conn: conn} = register_and_log_in_user(%{conn: conn})
 

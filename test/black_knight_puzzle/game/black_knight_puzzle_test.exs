@@ -152,6 +152,62 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
     refute BlackKnight.is_move_legal?(BlackKnight.set_board(), "Kh2f1")
   end
 
+  describe "forged and malformed moves" do
+    test "a piece cannot move as a different piece type" do
+      # d3 holds a rook; sending it as a knight or the player must not work.
+      board_state = put_in(BlackKnight.set_board(), [1, :C], 0)
+
+      refute BlackKnight.is_move_legal?(board_state, "Kd3c1")
+      refute BlackKnight.is_move_legal?(board_state, "Pd3c1")
+
+      assert {:error, "Illegal move", ^board_state} =
+               BlackKnight.process_move(board_state, "Kd3c1")
+    end
+
+    test "the blocked squares cannot be moved" do
+      board_state = put_in(BlackKnight.set_board(), [2, :F], 0)
+
+      assert {:error, "Illegal move", ^board_state} =
+               BlackKnight.process_move(board_state, "Kh3f2")
+
+      assert {:error, "Illegal move", ^board_state} =
+               BlackKnight.process_move(board_state, "xh3f2")
+    end
+
+    test "an empty square cannot be moved" do
+      board_state = BlackKnight.set_board()
+
+      refute BlackKnight.is_move_legal?(board_state, "Kc3e2")
+      refute BlackKnight.is_move_legal?(board_state, "0c3e2")
+    end
+
+    test "nothing can move onto a blocked square" do
+      # h2 -> f3 is a knight's L, but f3 is blocked.
+      refute BlackKnight.is_move_legal?(BlackKnight.set_board(), "Kh2f3")
+    end
+
+    test "malformed moves are rejected without raising" do
+      board_state = BlackKnight.set_board()
+
+      for move <- ["", "R", "Rc2", "Rc2c", "Rc2c3x", "Rz2c3", "Rc9c3", "Rc0c3", "Qc2c3", "Rc2Z3"] do
+        assert {:error, "Illegal move", ^board_state} =
+                 BlackKnight.process_move(board_state, move)
+      end
+    end
+  end
+
+  test "parse_move/1 accepts board squares in either case" do
+    assert {:ok, "R", "c2", "c3"} = BlackKnight.parse_move("Rc2C3")
+    assert :error = BlackKnight.parse_move("Rc4c3")
+    assert :error = BlackKnight.parse_move("Rb2c3")
+  end
+
+  test "build_move/5 rejects non-string params" do
+    assert "Rc2c3" = BlackKnight.build_move("2", "C", "R", "3", "C")
+    assert :error = BlackKnight.build_move(2, "C", "R", "3", "C")
+    assert :error = BlackKnight.build_move(nil, "C", "R", "3", %{})
+  end
+
   test "process_move/3 can finish at a custom goal" do
     board_state =
       BlackKnight.set_board()
