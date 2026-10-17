@@ -26,7 +26,9 @@
 
             <td>
               <span>
-                <%= live_redirect("Show", to: "/users/#{user_game.user_id}/games/#{user_game.id}") %>
+                <.link navigate={~p"/users/#{user_game.user_id}/games/#{user_game.id}"}>
+                  Show
+                </.link>
               </span>
             </td>
             <td></td>

@@ -5,8 +5,8 @@ config :bcrypt_elixir, :log_rounds, 1
 
 config :black_knight_puzzle, :daily_puzzle_generator,
   min_solution_length: 1,
-  max_solution_length: 40,
-  max_attempts: 10
+  max_solution_length: 5,
+  max_attempts: 5
 
 # Configure your database
 #

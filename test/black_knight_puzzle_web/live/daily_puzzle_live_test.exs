@@ -2,7 +2,11 @@ defmodule BlackKnightPuzzleWeb.DailyPuzzleLiveTest do
   use BlackKnightPuzzleWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  alias BlackKnightPuzzle.Games
+  import BlackKnightPuzzle.GamesFixtures
+
+  setup do
+    %{daily_puzzle: daily_puzzle_fixture(Date.utc_today())}
+  end
 
   test "logged out users can load the daily puzzle", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/daily")
@@ -12,11 +16,10 @@ defmodule BlackKnightPuzzleWeb.DailyPuzzleLiveTest do
     assert html =~ "Goal:"
   end
 
-  test "legal moves increment the move count", %{conn: conn} do
+  test "legal moves increment the move count", %{conn: conn, daily_puzzle: daily_puzzle} do
     {:ok, view, html} = live(conn, ~p"/daily")
     assert html =~ "Count: 0"
 
-    daily_puzzle = Games.get_or_create_daily_puzzle(Date.utc_today())
     first_move = hd(daily_puzzle.solution_moves)
 
     html =

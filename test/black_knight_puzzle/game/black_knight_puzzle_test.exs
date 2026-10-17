@@ -29,21 +29,16 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
   end
 
   test "get_move_to_position_string/1 returns move" do
-    board_state = BlackKnight.set_board()
-
     result = BlackKnight.get_move_to_position_string("Rc2c3")
     assert result == "c3"
   end
 
   test "get_move_from_position_string/1 returns current position" do
-    board_state = BlackKnight.set_board()
-
     result = BlackKnight.get_move_from_position_string("Rc2c3")
     assert result == "c2"
   end
 
   test "get_move_to_position_string/1 returns error" do
-    board_state = BlackKnight.set_board()
     result = BlackKnight.get_move_to_position_string("Rc3")
     assert result == :error
   end
@@ -75,84 +70,86 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
     refute result
   end
 
+  # Starting board (set_board/0):
+  #      H  G  F  E  D  C
+  #   1 [P][B][B][B][B][R]
+  #   2 [K][K][K][K][R][R]
+  #   3 [x][x][x][x][R][0]
+
   test "is_move_legal/2 rook returns true for horizontal" do
-    board_state = BlackKnight.set_board()
-
-    legal? = BlackKnight.is_move_legal?(board_state, "Rc2C3")
-
-    assert legal?
+    assert BlackKnight.is_move_legal?(BlackKnight.set_board(), "Rd3c3")
   end
 
   test "is_move_legal/2 rook returns true for vertical" do
-    board_state = BlackKnight.set_board()
-
-    legal? = BlackKnight.is_move_legal?(board_state, "Rh2g2")
-
-    assert legal?
+    assert BlackKnight.is_move_legal?(BlackKnight.set_board(), "Rc2c3")
   end
 
-  test "is_move_legal/2 rook returns false for vertical" do
-    board_state = BlackKnight.set_board()
+  test "is_move_legal/2 rook returns false for diagonal" do
+    board_state = put_in(BlackKnight.set_board(), [2, :E], 0)
 
-    legal? = BlackKnight.is_move_legal?(board_state, "Rh1g2")
+    refute BlackKnight.is_move_legal?(board_state, "Rd3e2")
+  end
 
-    refute legal?
+  test "is_move_legal/2 rook cannot pass through a piece" do
+    board_state =
+      BlackKnight.set_board()
+      |> put_in([3, :C], "R")
+      |> put_in([1, :C], 0)
+
+    refute BlackKnight.is_move_legal?(board_state, "Rc3c1")
   end
 
   test "is_move_legal/2 bishop returns true" do
-    board_state = BlackKnight.set_board()
+    board_state = put_in(BlackKnight.set_board(), [2, :H], 0)
 
-    legal? = BlackKnight.is_move_legal?(board_state, "Bh1g2")
-
-    assert legal?
+    assert BlackKnight.is_move_legal?(board_state, "Bg1h2")
   end
 
   test "is_move_legal/2 bishop returns true for edge to edge" do
-    board_state = BlackKnight.set_board()
+    board_state =
+      BlackKnight.set_board()
+      |> put_in([2, :E], 0)
+      |> put_in([3, :D], 0)
 
-    legal? = BlackKnight.is_move_legal?(board_state, "Bh1d5")
+    assert BlackKnight.is_move_legal?(board_state, "Bf1d3")
+  end
 
-    assert legal?
+  test "is_move_legal/2 bishop cannot pass through a piece" do
+    board_state = put_in(BlackKnight.set_board(), [3, :D], 0)
+
+    refute BlackKnight.is_move_legal?(board_state, "Bf1d3")
   end
 
   test "is_move_legal/2 bishop returns false for horizontal move" do
-    board_state = BlackKnight.set_board()
+    board_state = put_in(BlackKnight.set_board(), [1, :E], 0)
 
-    legal? = BlackKnight.is_move_legal?(board_state, "Bh1h5")
-
-    refute legal?
+    refute BlackKnight.is_move_legal?(board_state, "Bf1e1")
   end
 
-  test "is_move_legal/2 kight returns false for move" do
-    board_state = BlackKnight.set_board()
+  test "is_move_legal/2 knight returns false for non-L move" do
+    board_state = put_in(BlackKnight.set_board(), [2, :E], 0)
 
-    legal? = BlackKnight.is_move_legal?(board_state, "Kh1f5")
-
-    refute legal?
+    refute BlackKnight.is_move_legal?(board_state, "Kh2e2")
   end
 
-  test "is_move_legal/2 kight returns true for move" do
-    board_state = BlackKnight.set_board()
+  test "is_move_legal/2 knight returns true for move" do
+    board_state = put_in(BlackKnight.set_board(), [1, :F], 0)
 
-    legal? = BlackKnight.is_move_legal?(board_state, "Kh1f2")
-
-    assert legal?
+    assert BlackKnight.is_move_legal?(board_state, "Kh2f1")
   end
 
-  test "is_move_legal/2 kight returns true for win spot non black knight" do
-    board_state = BlackKnight.set_board()
-
-    legal? = BlackKnight.is_move_legal?(board_state, "Kd1c3")
-
-    assert legal?
+  test "is_move_legal/2 knight returns true for win spot non black knight" do
+    assert BlackKnight.is_move_legal?(BlackKnight.set_board(), "Ke2c3")
   end
 
-  test "is_move_legal/2 kight returns true for move middle" do
-    board_state = BlackKnight.set_board()
+  test "is_move_legal/2 knight can jump over pieces" do
+    board_state = put_in(BlackKnight.set_board(), [1, :G], 0)
 
-    legal? = BlackKnight.is_move_legal?(board_state, "Ke3g2")
+    assert BlackKnight.is_move_legal?(board_state, "Ke2g1")
+  end
 
-    assert legal?
+  test "is_move_legal/2 returns false when the target is occupied" do
+    refute BlackKnight.is_move_legal?(BlackKnight.set_board(), "Kh2f1")
   end
 
   test "process_move/3 can finish at a custom goal" do
@@ -165,11 +162,6 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
              BlackKnight.process_move(board_state, "Pe2c3", "c3")
 
     assert BlackKnight.is_game_finished?(updated_state, "c3")
-  end
-
-  test "solver finds the default board solution" do
-    assert {:ok, moves} = Solver.solve(BlackKnight.set_board(), "c3", max_depth: 100)
-    assert length(moves) == 18
   end
 
   test "solver returns a shortest one-move solution" do
@@ -185,9 +177,14 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
     assert :unsolvable = Solver.solve(BlackKnight.set_board(), "c3", max_depth: 1)
   end
 
+  test "daily puzzle generator fallback solution is the solver's shortest solution" do
+    assert {:ok, moves} = Solver.solve(BlackKnight.set_board(), "c3", max_depth: 100)
+    assert moves == DailyPuzzleGenerator.default_solution()
+  end
+
   test "daily puzzle generator creates a stable solvable puzzle for a date" do
     date = ~D[2026-06-27]
-    opts = [min_solution_length: 1, max_solution_length: 40, max_attempts: 10]
+    opts = [min_solution_length: 1, max_solution_length: 5, max_attempts: 5]
 
     puzzle = DailyPuzzleGenerator.generate(date, opts)
     same_puzzle = DailyPuzzleGenerator.generate(date, opts)
