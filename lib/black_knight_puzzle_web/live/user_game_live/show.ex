@@ -6,21 +6,17 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
 
   @impl true
   def mount(%{"id" => user_game_id}, _session, socket) do
-    user_game = Games.get_user_game_by_id(user_game_id)
-
-    current_state = BlackKnight.normalize_game_state(user_game.current_state)
-    count = Enum.count(user_game.user_game_moves)
+    user_game = Games.get_user_game!(socket.assigns.current_user, user_game_id)
 
     {:ok,
      assign(socket,
-       game_map: current_state,
-       user_game_id: user_game_id,
+       user_game: user_game,
+       game_map: BlackKnight.normalize_game_state(user_game.current_state),
        selected_start: nil,
        selected_end: nil,
        move: nil,
-       move_count: count || 0,
+       move_count: length(user_game.user_game_moves),
        error: nil
-       # current_user: get_current_user(session)
      )}
   end
 
@@ -46,22 +42,21 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
     {:noreply, reject_move(socket)}
   end
 
+  defp process_completed_move(%{assigns: %{user_game: %{won: true}}} = socket, _move) do
+    {:noreply, socket}
+  end
+
   defp process_completed_move(socket, move) do
     case BlackKnight.process_move(socket.assigns.game_map, move) do
-      {:ok, "Game finished", new_game_map} ->
-        Games.create_user_game_move(%{
-          "user_game_id" => socket.assigns.user_game_id,
-          "move" => move
-        })
+      {:ok, message, new_game_map} ->
+        won? = message == "Game finished"
 
-        Games.update_user_game(socket.assigns.user_game_id, %{
-          "current_state" => new_game_map,
-          "won" => true
-        })
+        {:ok, user_game} =
+          Games.record_user_game_move(socket.assigns.user_game, move, new_game_map, won?)
 
         socket =
-          socket
-          |> assign(
+          assign(socket,
+            user_game: user_game,
             selected_start: nil,
             selected_end: nil,
             move: move,
@@ -69,45 +64,16 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
             game_map: new_game_map,
             error: ""
           )
-          |> put_flash(:info, "Congratulations! You've won the game!")
 
-        {:noreply, socket}
-
-      {:ok, _, new_game_map} ->
-        Games.create_user_game_move(%{
-          "user_game_id" => socket.assigns.user_game_id,
-          "move" => move
-        })
-
-        Games.update_user_game(socket.assigns.user_game_id, %{
-          "current_state" => new_game_map,
-          "won" => true
-        })
-
-        {:noreply,
-         assign(socket,
-           selected_start: nil,
-           selected_end: nil,
-           move: move,
-           move_count: socket.assigns.move_count + 1,
-           game_map: new_game_map,
-           error: ""
-         )}
-
-      {:error, reason, game_map} ->
         socket =
-          socket
-          |> assign(
-            selected_start: nil,
-            selected_end: nil,
-            move: nil,
-            move_count: socket.assigns.move_count,
-            game_map: game_map,
-            error: reason
-          )
-          |> LiveToast.put_toast(:error, "Illegal move.")
+          if won?,
+            do: put_flash(socket, :info, "Congratulations! You've won the game!"),
+            else: socket
 
         {:noreply, socket}
+
+      {:error, _reason, _game_map} ->
+        {:noreply, reject_move(socket)}
     end
   end
 
@@ -134,14 +100,6 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
         "grey"
     end
   end
-
-  # defp get_current_user(session) do
-  #   if session["user_token"] == nil do
-  #     nil
-  #   else
-  #     Accounts.get_user_by_session_token(session["user_token"])
-  #   end
-  # end
 
   defp image_tag(value) do
     if value != "x" do

@@ -10,8 +10,5 @@
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
 
-BlackKnightPuzzle.Games.Game.changeset(%BlackKnightPuzzle.Games.Game{}, %{
-  name: "BlackKnightPuzzle",
-  start_state: BlackKnightPuzzle.Game.BlackKnight.set_board()
-})
-|> BlackKnightPuzzle.Repo.insert()
+# The classic game row is created by the
+# 20261017120000_fix_user_games_game_reference migration.

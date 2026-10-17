@@ -4,10 +4,7 @@ defmodule BlackKnightPuzzleWeb.UserGameLive do
   alias BlackKnightPuzzle.Games
 
   @impl true
-  def mount(%{"id" => id}, _, socket) do
-    # games = Games.list_games_for_user(user_id)
-    user_games = Games.list_user_games_by_user_id(id)
-
-    {:ok, assign(socket, user_games: user_games, user_id: id)}
+  def mount(_params, _session, socket) do
+    {:ok, assign(socket, user_games: Games.list_user_games(socket.assigns.current_user))}
   end
 end

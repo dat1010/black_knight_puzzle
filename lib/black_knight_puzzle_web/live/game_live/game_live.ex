@@ -45,18 +45,14 @@ defmodule BlackKnightPuzzleWeb.GameLive do
     {:noreply, reject_move(socket)}
   end
 
+  def handle_event("new_game", _, %{assigns: %{current_user: nil}} = socket) do
+    {:noreply, push_navigate(socket, to: ~p"/users/log_in")}
+  end
+
   def handle_event("new_game", _, socket) do
-    user_id = socket.assigns.current_user.id
+    {:ok, user_game} = Games.start_user_game(socket.assigns.current_user)
 
-    {:ok, user_game} =
-      %{
-        "user_id" => user_id,
-        "game_id" => 1,
-        "current_state" => initial_game_state()
-      }
-      |> Games.create_user_game()
-
-    {:noreply, push_redirect(socket, to: "/users/#{user_id}/games/#{user_game.id}")}
+    {:noreply, push_navigate(socket, to: ~p"/games/#{user_game.id}")}
   end
 
   defp process_completed_move(socket, move) do

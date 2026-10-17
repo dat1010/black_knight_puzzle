@@ -42,21 +42,50 @@ defmodule BlackKnightPuzzle.GamesTest do
     assert same_score.move_count == 12
   end
 
-  test "saved user game won flag can stay false after a non-winning move" do
-    user = user_fixture()
+  describe "user games" do
+    test "start_user_game/1 creates a classic game for the user" do
+      user = user_fixture()
 
-    {:ok, user_game} =
-      Games.create_user_game(%{
-        user_id: user.id,
-        game_id: user.id,
-        current_state: BlackKnight.set_board()
-      })
+      assert {:ok, user_game} = Games.start_user_game(user)
+      assert user_game.user_id == user.id
+      assert user_game.game_id == Games.get_classic_game!().id
+      refute user_game.won
+    end
 
-    {:ok, updated_user_game} =
-      Games.update_user_game(user_game.id, %{
-        current_state: BlackKnight.update_position(BlackKnight.set_board(), "Rc2c3")
-      })
+    test "list_user_games/1 only returns the user's own games" do
+      user = user_fixture()
+      other_user = user_fixture()
+      {:ok, mine} = Games.start_user_game(user)
+      {:ok, _theirs} = Games.start_user_game(other_user)
 
-    refute updated_user_game.won
+      assert [%{id: id}] = Games.list_user_games(user)
+      assert id == mine.id
+    end
+
+    test "get_user_game!/2 raises for another user's game" do
+      {:ok, theirs} = Games.start_user_game(user_fixture())
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Games.get_user_game!(user_fixture(), theirs.id)
+      end
+    end
+
+    test "record_user_game_move/4 keeps won false after a non-winning move" do
+      {:ok, user_game} = Games.start_user_game(user_fixture())
+      new_state = BlackKnight.update_position(BlackKnight.set_board(), "Rc2c3")
+
+      assert {:ok, user_game} = Games.record_user_game_move(user_game, "Rc2c3", new_state, false)
+      refute user_game.won
+      assert user_game.current_state == new_state
+    end
+
+    test "record_user_game_move/4 marks the game won" do
+      {:ok, user_game} = Games.start_user_game(user_fixture())
+
+      assert {:ok, user_game} =
+               Games.record_user_game_move(user_game, "Pe2c3", BlackKnight.set_board(), true)
+
+      assert user_game.won
+    end
   end
 end
