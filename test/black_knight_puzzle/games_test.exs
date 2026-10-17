@@ -2,6 +2,7 @@ defmodule BlackKnightPuzzle.GamesTest do
   use BlackKnightPuzzle.DataCase
 
   import BlackKnightPuzzle.AccountsFixtures
+  import BlackKnightPuzzle.GamesFixtures
 
   alias BlackKnightPuzzle.Game.BlackKnight
   alias BlackKnightPuzzle.Games
@@ -17,6 +18,12 @@ defmodule BlackKnightPuzzle.GamesTest do
     assert daily_puzzle.solvable
   end
 
+  test "get_or_create_daily_puzzle/1 returns an existing puzzle without generating" do
+    daily_puzzle = daily_puzzle_fixture(~D[2026-06-27])
+
+    assert Games.get_or_create_daily_puzzle(~D[2026-06-27]).id == daily_puzzle.id
+  end
+
   test "get_or_create_daily_puzzle/1 creates different rows for different dates" do
     first_puzzle = Games.get_or_create_daily_puzzle(~D[2026-06-27])
     second_puzzle = Games.get_or_create_daily_puzzle(~D[2026-06-28])
@@ -26,7 +33,7 @@ defmodule BlackKnightPuzzle.GamesTest do
 
   test "save_daily_score/3 stores only one score per user and daily puzzle" do
     user = user_fixture()
-    daily_puzzle = Games.get_or_create_daily_puzzle(~D[2026-06-27])
+    daily_puzzle = daily_puzzle_fixture(~D[2026-06-27])
 
     assert {:ok, score} = Games.save_daily_score(user, daily_puzzle, 12)
     assert {:ok, same_score} = Games.save_daily_score(user, daily_puzzle, 14)

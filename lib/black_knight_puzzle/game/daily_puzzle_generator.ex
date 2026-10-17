@@ -11,6 +11,29 @@ defmodule BlackKnightPuzzle.Game.DailyPuzzleGenerator do
   @max_attempts 200
   @pieces ["P", "K", "K", "K", "K", "B", "B", "B", "B", "R", "R", "R", "R"]
 
+  # Shortest solution for BlackKnight.set_board/0 with goal "c3", precomputed so the
+  # fallback never has to run a full BFS.
+  @default_solution [
+    "Ke2c3",
+    "Bd1e2",
+    "Rd2d1",
+    "Be1d2",
+    "Kg2e1",
+    "Bf1g2",
+    "Be2f1",
+    "Kc3e2",
+    "Rd3c3",
+    "Kf2d3",
+    "Ph1f2",
+    "Bg2h1",
+    "Ke1g2",
+    "Rd1e1",
+    "Pf2d1",
+    "Kd3f2",
+    "Rc3d3",
+    "Pd1c3"
+  ]
+
   def generate(date, opts \\ []) do
     min_length = Keyword.get(opts, :min_solution_length, @min_solution_length)
     max_length = Keyword.get(opts, :max_solution_length, @max_solution_length)
@@ -41,14 +64,14 @@ defmodule BlackKnightPuzzle.Game.DailyPuzzleGenerator do
 
     case candidate do
       nil ->
-        fallback_board = BlackKnight.set_board()
-        {:ok, solution_moves} = Solver.solve(fallback_board, "c3", max_depth: 100)
-        candidate_attrs(date, seed, fallback_board, "c3", solution_moves)
+        candidate_attrs(date, seed, BlackKnight.set_board(), "c3", @default_solution)
 
       candidate ->
         candidate
     end
   end
+
+  def default_solution, do: @default_solution
 
   def seed_for_date(%Date{} = date) do
     days = Date.to_gregorian_days(date)

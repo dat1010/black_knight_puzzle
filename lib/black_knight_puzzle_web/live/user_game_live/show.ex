@@ -2,7 +2,6 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
   use BlackKnightPuzzleWeb, :live_view
 
   alias BlackKnightPuzzle.Game.BlackKnight
-  alias BlackKnightPuzzle.Accounts
   alias BlackKnightPuzzle.Games
 
   def mount(%{"id" => user_game_id}, _session, socket) do
@@ -223,15 +222,6 @@ defmodule BlackKnightPuzzleWeb.UserGameLive.Show do
       src = "/images/#{value}.png"
       html_content = "<img src=\"#{src}\" alt=\"#{value}\" style=\"width: 100%; height: auto;\">"
       Phoenix.HTML.raw(html_content)
-    end
-  end
-
-  defp process_move(move, game_map) do
-    if BlackKnight.is_move_legal?(game_map, move) do
-      updated_game_map = BlackKnight.update_position(game_map, move)
-      {:ok, updated_game_map}
-    else
-      {:error, "Move is not legal"}
     end
   end
 
