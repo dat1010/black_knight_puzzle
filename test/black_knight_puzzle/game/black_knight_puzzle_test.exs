@@ -233,6 +233,65 @@ defmodule BlackKnightPuzzle.Game.BlackKnightTest do
     assert :unsolvable = Solver.solve(BlackKnight.set_board(), "c3", max_depth: 1)
   end
 
+  test "solver gives up after max_states positions" do
+    assert :unsolvable =
+             Solver.solve(BlackKnight.set_board(), "c3", max_depth: 100, max_states: 50)
+  end
+
+  test "solver gives up at the deadline" do
+    deadline = System.monotonic_time(:millisecond) - 1
+
+    assert :unsolvable =
+             Solver.solve(BlackKnight.set_board(), "c3", max_depth: 100, deadline: deadline)
+  end
+
+  test "solver legal_moves/1 matches BlackKnight.is_move_legal?/2 on random boards" do
+    pieces = ~w(P K K K K B B B B R R R R)
+    squares = BlackKnight.playable_positions()
+
+    for seed <- 1..200 do
+      :rand.seed(:exsss, {seed, seed, seed})
+      holes = Enum.take_random(squares, Enum.random(1..3))
+      values = Enum.zip(squares -- holes, Enum.shuffle(pieces)) ++ Enum.map(holes, &{&1, 0})
+
+      board =
+        Enum.reduce(values, BlackKnight.set_board(), fn {square, value}, board ->
+          put_in(
+            board,
+            [BlackKnight.get_row_integer(square), BlackKnight.get_column_atom(square)],
+            value
+          )
+        end)
+
+      expected =
+        for from <- squares,
+            piece = BlackKnight.get_board_value_at(board, from),
+            piece in ~w(P K B R),
+            to <- squares,
+            move = piece <> from <> to,
+            BlackKnight.is_move_legal?(board, move),
+            do: move
+
+      assert Enum.sort(Solver.legal_moves(board)) == Enum.sort(expected)
+    end
+  end
+
+  test "daily puzzle generator stops at its time budget" do
+    {time_us, puzzle} =
+      :timer.tc(fn ->
+        DailyPuzzleGenerator.generate(~D[2026-10-27],
+          min_solution_length: 10,
+          max_solution_length: 40,
+          max_attempts: 200,
+          time_budget_ms: 200
+        )
+      end)
+
+    assert div(time_us, 1000) < 1_000
+    assert puzzle.solvable
+    assert puzzle.solution_length == length(puzzle.solution_moves)
+  end
+
   test "daily puzzle generator fallback solution is the solver's shortest solution" do
     assert {:ok, moves} = Solver.solve(BlackKnight.set_board(), "c3", max_depth: 100)
     assert moves == DailyPuzzleGenerator.default_solution()

@@ -92,6 +92,18 @@ defmodule BlackKnightPuzzle.Games do
     end
   end
 
+  @doc """
+  Makes sure daily puzzles exist for `from_date` and the `days_ahead` days
+  after it, generating any that are missing. Returns the dates.
+  """
+  def ensure_daily_puzzles(%Date{} = from_date, days_ahead) do
+    for offset <- 0..days_ahead do
+      date = Date.add(from_date, offset)
+      get_or_create_daily_puzzle(date)
+      date
+    end
+  end
+
   def create_daily_puzzle_for_date(date) do
     attrs = DailyPuzzleGenerator.generate(date, daily_puzzle_generator_opts())
 

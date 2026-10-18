@@ -3,6 +3,9 @@ import Config
 # Only in tests, remove the complexity from the password hashing algorithm
 config :bcrypt_elixir, :log_rounds, 1
 
+# Tests generate puzzles explicitly instead of on a background schedule.
+config :black_knight_puzzle, BlackKnightPuzzle.Games.DailyPuzzleScheduler, enabled: false
+
 config :black_knight_puzzle, :daily_puzzle_generator,
   min_solution_length: 1,
   max_solution_length: 5,

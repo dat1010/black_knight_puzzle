@@ -15,8 +15,8 @@ defmodule BlackKnightPuzzle.Application do
       {Phoenix.PubSub, name: BlackKnightPuzzle.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: BlackKnightPuzzle.Finch},
-      # Start a worker by calling: BlackKnightPuzzle.Worker.start_link(arg)
-      # {BlackKnightPuzzle.Worker, arg},
+      # Generates upcoming daily puzzles in the background
+      BlackKnightPuzzle.Games.DailyPuzzleScheduler,
       # Start to serve requests, typically the last entry
       BlackKnightPuzzleWeb.Endpoint
     ]

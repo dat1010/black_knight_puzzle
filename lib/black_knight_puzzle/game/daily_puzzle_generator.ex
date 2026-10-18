@@ -9,6 +9,9 @@ defmodule BlackKnightPuzzle.Game.DailyPuzzleGenerator do
   @min_solution_length 10
   @max_solution_length 40
   @max_attempts 200
+  # Upper bound on generating one date, so a run of unsolvable candidates
+  # can't hang a request or the scheduler.
+  @time_budget_ms 20_000
   @pieces ["P", "K", "K", "K", "K", "B", "B", "B", "B", "R", "R", "R", "R"]
 
   # Shortest solution for BlackKnight.set_board/0 with goal "c3", precomputed so the
@@ -38,6 +41,8 @@ defmodule BlackKnightPuzzle.Game.DailyPuzzleGenerator do
     min_length = Keyword.get(opts, :min_solution_length, @min_solution_length)
     max_length = Keyword.get(opts, :max_solution_length, @max_solution_length)
     max_attempts = Keyword.get(opts, :max_attempts, @max_attempts)
+    time_budget_ms = Keyword.get(opts, :time_budget_ms, @time_budget_ms)
+    deadline = System.monotonic_time(:millisecond) + time_budget_ms
     seed = Keyword.get(opts, :seed, seed_for_date(date))
     rand_state = :rand.seed_s(:exsplus, seed)
 
@@ -45,7 +50,7 @@ defmodule BlackKnightPuzzle.Game.DailyPuzzleGenerator do
       Enum.reduce_while(1..max_attempts, {nil, rand_state}, fn _attempt, {best, rand_state} ->
         {board, goal_position, rand_state} = random_board(rand_state)
 
-        case Solver.solve(board, goal_position, max_depth: max_length) do
+        case Solver.solve(board, goal_position, max_depth: max_length, deadline: deadline) do
           {:ok, solution_moves} ->
             solution_length = length(solution_moves)
             candidate = candidate_attrs(date, seed, board, goal_position, solution_moves)
@@ -58,7 +63,11 @@ defmodule BlackKnightPuzzle.Game.DailyPuzzleGenerator do
             end
 
           :unsolvable ->
-            {:cont, {best, rand_state}}
+            if System.monotonic_time(:millisecond) >= deadline do
+              {:halt, {best, rand_state}}
+            else
+              {:cont, {best, rand_state}}
+            end
         end
       end)
 

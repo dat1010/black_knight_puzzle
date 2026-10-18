@@ -1,6 +1,6 @@
 # Black Knight Puzzle — Review & Roadmap
 
-_Last updated: 2026-10-17. Status: Phase 0 implemented on local stacked branches `phase0/1-…` through `phase0/5-…`; not yet pushed or merged. Branch protection on `main` is not yet enabled._
+_Last updated: 2026-10-18. Status: Phase 0 merged and deployed (branch protection on `main` still to enable). Phase 1 in progress: daily puzzles are pre-generated and the solver is ~40× faster._
 
 ## Product direction
 
@@ -114,7 +114,8 @@ board, users can only open their own games, and the suite is green and fast.
 - [x] Branch protection on `main`: require the `test` check and PRs (confirm before applying).
 - **Done when:** a failing PR can't merge, and a broken `main` can't deploy.
 
-- [ ] Enable branch protection on `main` (needs the user's go-ahead).
+- [ ] Enable branch protection on `main`: the user runs it (Claude's attempt was blocked by
+      the permission system).
 - [ ] Merge PRs 1–5 in order. **Merge PR 1 before opening the others:** until it lands, every
       opened PR deploys to production.
 
