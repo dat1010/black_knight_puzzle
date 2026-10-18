@@ -29,21 +29,6 @@ defmodule BlackKnightPuzzleWeb.DailyPuzzleLive do
   end
 
   @impl true
-  def handle_event("select_position", %{"row" => row, "col" => col, "val" => val}, socket) do
-    case {socket.assigns.selected_start, socket.assigns.selected_end} do
-      {nil, _} ->
-        {:noreply, assign(socket, selected_start: {row, col, val}, move: "#{val}#{row}#{col}")}
-
-      {{start_row, start_col, start_val}, nil} ->
-        move = build_move(start_row, start_col, start_val, row, col)
-        process_completed_move(socket, move)
-
-      _ ->
-        {:noreply, clear_selection(socket)}
-    end
-  end
-
-  @impl true
   def handle_event(
         "move_piece",
         %{
@@ -55,8 +40,14 @@ defmodule BlackKnightPuzzleWeb.DailyPuzzleLive do
         },
         socket
       ) do
-    move = build_move(start_row, start_col, start_val, row, col)
-    process_completed_move(socket, move)
+    case BlackKnight.build_move(start_row, start_col, start_val, row, col) do
+      :error -> {:noreply, reject_move(socket)}
+      move -> process_completed_move(socket, move)
+    end
+  end
+
+  def handle_event("move_piece", _params, socket) do
+    {:noreply, reject_move(socket)}
   end
 
   defp process_completed_move(%{assigns: %{won: true}} = socket, _move), do: {:noreply, socket}
@@ -127,18 +118,10 @@ defmodule BlackKnightPuzzleWeb.DailyPuzzleLive do
     end
   end
 
-  defp clear_selection(socket) do
-    assign(socket,
-      selected_start: nil,
-      selected_end: nil,
-      move: nil,
-      game_map: socket.assigns.game_map
-    )
-  end
-
-  defp build_move(start_row, start_col, start_val, row, col) do
-    lower = String.downcase("#{start_col}#{start_row}#{col}#{row}")
-    "#{start_val}#{lower}"
+  defp reject_move(socket) do
+    socket
+    |> assign(selected_start: nil, selected_end: nil, move: nil, error: "Illegal move")
+    |> LiveToast.put_toast(:error, "Illegal move.")
   end
 
   defp chess_color(row_index, col_atom, value) do

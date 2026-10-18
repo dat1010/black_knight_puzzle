@@ -3,8 +3,9 @@ defmodule BlackKnightPuzzle.Games do
   The Games context.
   """
   import Ecto.Query, warn: false
-  alias Ecto.Repo
   alias BlackKnightPuzzle.Repo
+  alias BlackKnightPuzzle.Accounts.User
+  alias BlackKnightPuzzle.Game.BlackKnight
 
   alias BlackKnightPuzzle.Games.Game
   alias BlackKnightPuzzle.Games.DailyPuzzle
@@ -15,64 +16,69 @@ defmodule BlackKnightPuzzle.Games do
 
   # database getters
 
+  @classic_game_name "BlackKnightPuzzle"
+
   @doc """
-  Gets a single game by name
-
-  ## Examples
-
-    iex> get_game_by_name("BlackKnightPuzzle")
-    $Game{}
-
+  Gets the classic Black Knight Puzzle game row.
   """
-  def get_game_by_name(name) do
-    query =
-      from g in Game,
-        where: g.name == ^name
-
-    query
-    |> Repo.all()
-    |> hd()
+  def get_classic_game! do
+    from(g in Game, where: g.name == ^@classic_game_name, order_by: g.id, limit: 1)
+    |> Repo.one!()
   end
 
   @doc """
-  Gets a single user game by ID.
-
-  ## Examples
-
-      iex> get_user_game_by_id(123)
-      %UserGame{id: 123, ...}
-
-      iex> get_user_game_by_id(456)
-      nil
-
+  Lists a user's games, most recently played first.
   """
-  def get_user_game_by_id(user_game_id) do
-    from(g in UserGame,
-      where: g.id == ^user_game_id,
-      preload: [:user_game_moves]
-    )
-    |> Repo.all()
-    |> hd
-  end
-
-  @doc """
-  Gets all games for a specific user id
-
-  ## Examples
-
-    iex> list_user_games_by_user_id(1)
-    %UserGame{}
-
-    iex> list_user_games_by_user_id(341234)
-    []
-  """
-  def list_user_games_by_user_id(user_id) do
+  def list_user_games(%User{id: user_id}) do
     from(g in UserGame,
       where: g.user_id == ^user_id,
       order_by: [desc: g.updated_at],
       preload: [:user_game_moves]
     )
     |> Repo.all()
+  end
+
+  @doc """
+  Gets one of the user's games.
+
+  Raises `Ecto.NoResultsError` (rendered as a 404) if the game doesn't exist or
+  belongs to someone else.
+  """
+  def get_user_game!(%User{id: user_id}, user_game_id) do
+    from(g in UserGame,
+      where: g.id == ^user_game_id and g.user_id == ^user_id,
+      preload: [:user_game_moves]
+    )
+    |> Repo.one!()
+  end
+
+  @doc """
+  Starts a new classic game for the user.
+  """
+  def start_user_game(%User{id: user_id}) do
+    create_user_game(%{
+      user_id: user_id,
+      game_id: get_classic_game!().id,
+      current_state: BlackKnight.set_board()
+    })
+  end
+
+  @doc """
+  Saves a move on a user's game: records the move and the new board, and marks
+  the game won when `won?` is true. Both writes happen in one transaction.
+  """
+  def record_user_game_move(%UserGame{} = user_game, move, new_state, won?) do
+    Repo.transaction(fn ->
+      with {:ok, _move} <- create_user_game_move(%{user_game_id: user_game.id, move: move}),
+           {:ok, user_game} <-
+             user_game
+             |> UserGame.changeset(%{current_state: new_state, won: user_game.won or won?})
+             |> Repo.update() do
+        user_game
+      else
+        {:error, changeset} -> Repo.rollback(changeset)
+      end
+    end)
   end
 
   def get_daily_puzzle(date) do
@@ -151,21 +157,5 @@ defmodule BlackKnightPuzzle.Games do
     %UserGameMove{}
     |> UserGameMove.changeset(attrs)
     |> Repo.insert()
-  end
-
-  # database update
-  def update_user_game(id, attrs \\ %{}) do
-    UserGame
-    # Get the existing UserGame based on the ID provided
-    |> Repo.get(id)
-    |> case do
-      nil ->
-        {:error, :not_found}
-
-      user_game ->
-        user_game
-        |> UserGame.changeset(attrs)
-        |> Repo.update()
-    end
   end
 end

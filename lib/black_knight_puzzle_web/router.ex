@@ -69,9 +69,13 @@ defmodule BlackKnightPuzzleWeb.Router do
       on_mount: [{BlackKnightPuzzleWeb.UserAuth, :ensure_authenticated}] do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
-      live "/users/:id/games", UserGameLive
-      live "/users/:id/games/:id", UserGameLive.Show
+      live "/games", UserGameLive
+      live "/games/:id", UserGameLive.Show
     end
+
+    # Old game URLs, kept so existing links and bookmarks still work.
+    get "/users/:user_id/games", GameRedirectController, :index
+    get "/users/:user_id/games/:id", GameRedirectController, :show
   end
 
   scope "/", BlackKnightPuzzleWeb do
