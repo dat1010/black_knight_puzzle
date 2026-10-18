@@ -47,8 +47,25 @@
   pointer-events: none;
 }
 
+#chess-board {
+  /* One square's size: fills a phone screen, caps at 96px on desktop. */
+  --square: clamp(44px, 12vw, 96px);
+}
+
 #chess-board td {
   position: relative;
+  width: var(--square);
+  height: var(--square);
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+}
+
+#chess-board td img {
+  display: block;
+  height: 90%;
+  width: auto;
+  margin: 0 auto;
 }
 
 #chess-board td[data-val="P"],
