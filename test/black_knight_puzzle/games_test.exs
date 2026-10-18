@@ -42,6 +42,17 @@ defmodule BlackKnightPuzzle.GamesTest do
     assert same_score.move_count == 12
   end
 
+  test "ensure_daily_puzzles/2 creates puzzles for the date and the days after it" do
+    daily_puzzle_fixture(~D[2026-06-28])
+
+    assert Games.ensure_daily_puzzles(~D[2026-06-27], 2) ==
+             [~D[2026-06-27], ~D[2026-06-28], ~D[2026-06-29]]
+
+    for date <- [~D[2026-06-27], ~D[2026-06-28], ~D[2026-06-29]] do
+      assert Games.get_daily_puzzle(date)
+    end
+  end
+
   describe "user games" do
     test "start_user_game/1 creates a classic game for the user" do
       user = user_fixture()

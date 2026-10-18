@@ -1,114 +1,177 @@
 defmodule BlackKnightPuzzle.Game.Solver do
   @moduledoc """
   Finds shortest Black Knight puzzle solutions using breadth-first search.
+
+  Internally a board is a flat 18-element tuple, row-major from H1 to C3, so
+  each search step is tuple lookups instead of rebuilding nested maps. Moves
+  follow the same rules as `BlackKnight.is_move_legal?/2` and are generated
+  in the same order, so results match a search over the map representation.
   """
 
   alias BlackKnightPuzzle.Game.BlackKnight
 
   @default_max_depth 40
+  @default_max_states 500_000
+  # How many positions to expand between deadline checks.
+  @deadline_check_interval 1_024
 
+  @columns BlackKnight.columns()
+  @rows BlackKnight.rows()
+  @width length(@columns)
+  @cells length(@rows) * @width
+  @pieces ["P", "K", "B", "R"]
+
+  @squares (for row <- @rows, col <- @columns do
+              BlackKnight.position_string(row, col)
+            end)
+           |> List.to_tuple()
+
+  @doc """
+  Solves `game_state` for the black knight reaching `goal_position`.
+
+  ## Options
+
+    * `:max_depth` - the longest solution to look for (default #{@default_max_depth})
+    * `:max_states` - give up after visiting this many positions
+      (default #{@default_max_states})
+    * `:deadline` - a `System.monotonic_time(:millisecond)` after which to give up
+
+  Returns `{:ok, moves}` with a shortest solution, or `:unsolvable` if none is
+  found within the limits.
+  """
   def solve(game_state, goal_position, opts \\ []) do
-    max_depth = Keyword.get(opts, :max_depth, @default_max_depth)
-    game_state = BlackKnight.normalize_game_state(game_state)
+    board = to_board(game_state)
+    goal = square_index(goal_position)
+
+    limits = %{
+      max_depth: Keyword.get(opts, :max_depth, @default_max_depth),
+      max_states: Keyword.get(opts, :max_states, @default_max_states),
+      deadline: Keyword.get(opts, :deadline)
+    }
 
     cond do
-      BlackKnight.is_game_finished?(game_state, goal_position) ->
-        {:ok, []}
-
-      max_depth < 1 ->
-        :unsolvable
-
-      true ->
-        search(game_state, goal_position, max_depth)
+      elem(board, goal) == "P" -> {:ok, []}
+      limits.max_depth < 1 -> :unsolvable
+      true -> search(board, goal, limits)
     end
   end
 
   def legal_moves(game_state) do
-    game_state = BlackKnight.normalize_game_state(game_state)
-    open_positions = positions_with_value(game_state, 0)
-
-    for {from_position, piece} <- pieces(game_state),
-        to_position <- open_positions,
-        move = "#{piece}#{from_position}#{to_position}",
-        BlackKnight.is_move_legal?(game_state, move) do
-      move
-    end
+    game_state
+    |> to_board()
+    |> board_moves()
+    |> Enum.map(fn {move, _next_board} -> move end)
   end
 
-  defp search(game_state, goal_position, max_depth) do
-    queue = :queue.from_list([{game_state, []}])
-    visited = MapSet.new([state_key(game_state)])
+  defp search(board, goal, limits) do
+    queue = :queue.from_list([{board, 0, []}])
+    visited = MapSet.new([board])
 
-    bfs(queue, visited, goal_position, max_depth)
+    bfs(queue, visited, goal, limits, 0)
   end
 
-  defp bfs(queue, visited, goal_position, max_depth) do
-    case :queue.out(queue) do
-      {:empty, _queue} ->
+  defp bfs(queue, visited, goal, limits, expanded) do
+    cond do
+      MapSet.size(visited) > limits.max_states ->
         :unsolvable
 
-      {{:value, {game_state, path}}, queue} ->
-        if length(path) >= max_depth do
-          bfs(queue, visited, goal_position, max_depth)
-        else
-          {queue, visited, result} =
-            game_state
-            |> legal_moves()
-            |> Enum.reduce_while({queue, visited, nil}, fn move, {queue, visited, _result} ->
-              {:ok, _message, next_state} =
-                BlackKnight.process_move(game_state, move, goal_position)
+      rem(expanded, @deadline_check_interval) == 0 and past_deadline?(limits.deadline) ->
+        :unsolvable
 
-              key = state_key(next_state)
+      true ->
+        case :queue.out(queue) do
+          {:empty, _queue} ->
+            :unsolvable
 
-              if MapSet.member?(visited, key) do
-                {:cont, {queue, visited, nil}}
-              else
-                next_path = [move | path]
+          {{:value, {_board, depth, _path}}, queue} when depth >= limits.max_depth ->
+            bfs(queue, visited, goal, limits, expanded + 1)
 
-                if BlackKnight.is_game_finished?(next_state, goal_position) do
-                  {:halt, {queue, visited, {:ok, Enum.reverse(next_path)}}}
-                else
-                  {:cont,
-                   {:queue.in({next_state, next_path}, queue), MapSet.put(visited, key), nil}}
-                end
-              end
-            end)
-
-          case result do
-            {:ok, moves} -> {:ok, moves}
-            nil -> bfs(queue, visited, goal_position, max_depth)
-          end
+          {{:value, {board, depth, path}}, queue} ->
+            board
+            |> board_moves()
+            |> expand(queue, visited, goal, depth, path)
+            |> case do
+              {:ok, moves} -> {:ok, moves}
+              {queue, visited} -> bfs(queue, visited, goal, limits, expanded + 1)
+            end
         end
     end
   end
 
-  defp pieces(game_state) do
-    for row <- BlackKnight.rows(),
-        col <- BlackKnight.columns(),
-        value = game_state[row][col],
-        is_binary(value),
-        value != "x" do
-      {BlackKnight.position_string(row, col), value}
+  defp expand([], queue, visited, _goal, _depth, _path), do: {queue, visited}
+
+  defp expand([{move, next_board} | rest], queue, visited, goal, depth, path) do
+    cond do
+      MapSet.member?(visited, next_board) ->
+        expand(rest, queue, visited, goal, depth, path)
+
+      elem(next_board, goal) == "P" ->
+        {:ok, Enum.reverse([move | path])}
+
+      true ->
+        queue = :queue.in({next_board, depth + 1, [move | path]}, queue)
+        expand(rest, queue, MapSet.put(visited, next_board), goal, depth, path)
     end
   end
 
-  defp positions_with_value(game_state, target_value) do
-    for row <- BlackKnight.rows(),
-        col <- BlackKnight.columns(),
-        game_state[row][col] == target_value do
-      BlackKnight.position_string(row, col)
+  defp past_deadline?(nil), do: false
+  defp past_deadline?(deadline), do: System.monotonic_time(:millisecond) >= deadline
+
+  # Every legal move from `board` as {move_string, next_board}, ordered by
+  # piece square then target square (both row-major), like the map version.
+  defp board_moves(board) do
+    holes = for i <- 0..(@cells - 1), elem(board, i) == 0, do: i
+
+    for from <- 0..(@cells - 1),
+        piece = elem(board, from),
+        piece in @pieces,
+        to <- holes,
+        legal?(board, piece, from, to) do
+      move = piece <> elem(@squares, from) <> elem(@squares, to)
+      {move, board |> put_elem(to, piece) |> put_elem(from, 0)}
     end
   end
 
-  defp state_key(game_state) do
-    game_state
-    |> BlackKnight.normalize_game_state()
-    |> Enum.sort_by(fn {row, _cols} -> row end)
-    |> Enum.flat_map(fn {row, cols} ->
-      cols
-      |> Enum.sort_by(fn {col, _value} -> BlackKnight.value_map()[col] end)
-      |> Enum.map(fn {col, value} -> {row, col, value} end)
-    end)
-    |> :erlang.term_to_binary()
+  defp legal?(_board, piece, from, to) when piece in ["P", "K"] do
+    {dr, dc} = delta(from, to)
+    {abs(dr), abs(dc)} in [{1, 2}, {2, 1}]
+  end
+
+  defp legal?(board, "B", from, to) do
+    {dr, dc} = delta(from, to)
+    abs(dr) == abs(dc) and path_clear?(board, from, dr, dc)
+  end
+
+  defp legal?(board, "R", from, to) do
+    {dr, dc} = delta(from, to)
+    (dr == 0 or dc == 0) and path_clear?(board, from, dr, dc)
+  end
+
+  defp delta(from, to) do
+    {div(to, @width) - div(from, @width), rem(to, @width) - rem(from, @width)}
+  end
+
+  # True if every square strictly between `from` and the target is empty.
+  defp path_clear?(board, from, dr, dc) do
+    steps = max(abs(dr), abs(dc))
+    step = sign(dr) * @width + sign(dc)
+
+    Enum.all?(1..(steps - 1)//1, fn i -> elem(board, from + i * step) == 0 end)
+  end
+
+  defp sign(0), do: 0
+  defp sign(n) when n > 0, do: 1
+  defp sign(_n), do: -1
+
+  defp to_board(game_state) do
+    game_state = BlackKnight.normalize_game_state(game_state)
+
+    for(row <- @rows, col <- @columns, do: game_state[row][col])
+    |> List.to_tuple()
+  end
+
+  defp square_index(position) do
+    position = String.downcase(position)
+    Enum.find_index(Tuple.to_list(@squares), &(&1 == position))
   end
 end
