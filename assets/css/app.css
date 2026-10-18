@@ -34,6 +34,12 @@
 
 /* This file is for your main application CSS */
 
+/* In dark mode Bulma makes <strong> near-white, but light notifications keep
+   a light background, so bold text (e.g. the daily goal square) vanished. */
+.notification.is-light strong {
+  color: inherit;
+}
+
 /* Prevent native image drag/download behavior during DnD on the board */
 #chess-board, #chess-board table {
   -webkit-user-select: none;

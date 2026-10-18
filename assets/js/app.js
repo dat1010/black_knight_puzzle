@@ -45,6 +45,16 @@ topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
+// Open and close the mobile navbar menu (Bulma ships no JS for this)
+document.querySelectorAll(".navbar-burger").forEach(burger => {
+  burger.addEventListener("click", () => {
+    const menu = document.getElementById(burger.dataset.target)
+    const open = burger.classList.toggle("is-active")
+    menu?.classList.toggle("is-active", open)
+    burger.setAttribute("aria-expanded", String(open))
+  })
+})
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 
