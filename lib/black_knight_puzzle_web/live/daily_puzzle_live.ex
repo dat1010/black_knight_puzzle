@@ -159,7 +159,7 @@ defmodule BlackKnightPuzzleWeb.DailyPuzzleLive do
   defp image_tag(value) do
     if value != "x" do
       src = "/images/#{value}.png"
-      html_content = "<img src=\"#{src}\" alt=\"#{value}\" style=\"width: 100%; height: auto;\">"
+      html_content = "<img src=\"#{src}\" alt=\"#{value}\">"
       Phoenix.HTML.raw(html_content)
     end
   end
